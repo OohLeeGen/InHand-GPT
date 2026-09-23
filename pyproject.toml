@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "inhand-gpt"
+version = "0.1.0"
+description = "GPT-as-Policy decision loop driving Shadow Dexterous Hand in-hand block reorientation (MuJoCo sim)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "gymnasium",
+    "gymnasium-robotics",
+    "httpx",
+    "imageio",
+    "imageio-ffmpeg",
+]
+
+[tool.setuptools.packages.find]
+include = ["inhand_gpt*"]

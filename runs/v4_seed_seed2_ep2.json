@@ -1,0 +1,293 @@
+{
+  "meta": {
+    "policy": "baseline",
+    "seed": 2,
+    "max_cycles": 25,
+    "started_at": "2026-09-23T00:59:38"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "roll_ccw",
+      "rationale": "err=-116.59deg -> roll_ccw",
+      "err_before_deg": -116.587,
+      "err_after_deg": -119.976,
+      "measured_delta_deg": -3.389,
+      "drift_xy_m": 0.0042,
+      "drift_z_m": -0.0016,
+      "elapsed_s": 0.06
+    },
+    {
+      "cycle": 1,
+      "choice": "roll_ccw",
+      "rationale": "err=-119.98deg -> roll_ccw",
+      "err_before_deg": -119.976,
+      "err_after_deg": -119.912,
+      "measured_delta_deg": 0.064,
+      "drift_xy_m": 0.0072,
+      "drift_z_m": -0.0025,
+      "elapsed_s": 0.13
+    },
+    {
+      "cycle": 2,
+      "choice": "roll_ccw",
+      "rationale": "err=-119.91deg -> roll_ccw",
+      "err_before_deg": -119.912,
+      "err_after_deg": -119.08,
+      "measured_delta_deg": 0.832,
+      "drift_xy_m": 0.0077,
+      "drift_z_m": -0.003,
+      "elapsed_s": 0.2
+    },
+    {
+      "cycle": 3,
+      "choice": "regrasp",
+      "rationale": "roll_ccw stalled at err=-119.08deg; regrasp and retry",
+      "err_before_deg": -119.08,
+      "err_after_deg": -118.423,
+      "measured_delta_deg": 0.657,
+      "drift_xy_m": 0.0113,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 0.24
+    },
+    {
+      "cycle": 4,
+      "choice": "roll_ccw",
+      "rationale": "err=-118.42deg -> roll_ccw",
+      "err_before_deg": -118.423,
+      "err_after_deg": -116.133,
+      "measured_delta_deg": 2.29,
+      "drift_xy_m": 0.0109,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.31
+    },
+    {
+      "cycle": 5,
+      "choice": "roll_ccw",
+      "rationale": "err=-116.13deg -> roll_ccw",
+      "err_before_deg": -116.133,
+      "err_after_deg": -116.069,
+      "measured_delta_deg": 0.064,
+      "drift_xy_m": 0.0109,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.38
+    },
+    {
+      "cycle": 6,
+      "choice": "roll_ccw",
+      "rationale": "err=-116.07deg -> roll_ccw",
+      "err_before_deg": -116.069,
+      "err_after_deg": -116.095,
+      "measured_delta_deg": -0.026,
+      "drift_xy_m": 0.0109,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.45
+    },
+    {
+      "cycle": 7,
+      "choice": "regrasp",
+      "rationale": "roll_ccw stalled at err=-116.09deg; regrasp and retry",
+      "err_before_deg": -116.095,
+      "err_after_deg": -117.956,
+      "measured_delta_deg": -1.861,
+      "drift_xy_m": 0.0115,
+      "drift_z_m": -0.0039,
+      "elapsed_s": 0.5
+    },
+    {
+      "cycle": 8,
+      "choice": "roll_ccw",
+      "rationale": "err=-117.96deg -> roll_ccw",
+      "err_before_deg": -117.956,
+      "err_after_deg": -116.14,
+      "measured_delta_deg": 1.816,
+      "drift_xy_m": 0.0109,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.57
+    },
+    {
+      "cycle": 9,
+      "choice": "roll_ccw",
+      "rationale": "err=-116.14deg -> roll_ccw",
+      "err_before_deg": -116.14,
+      "err_after_deg": -116.074,
+      "measured_delta_deg": 0.066,
+      "drift_xy_m": 0.0109,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.64
+    },
+    {
+      "cycle": 10,
+      "choice": "roll_ccw",
+      "rationale": "err=-116.07deg -> roll_ccw",
+      "err_before_deg": -116.074,
+      "err_after_deg": -116.103,
+      "measured_delta_deg": -0.029,
+      "drift_xy_m": 0.0109,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.71
+    },
+    {
+      "cycle": 11,
+      "choice": "roll_cw",
+      "rationale": "err=-116.10deg -> roll_cw (fallback from roll_ccw)",
+      "err_before_deg": -116.103,
+      "err_after_deg": -117.989,
+      "measured_delta_deg": -1.886,
+      "drift_xy_m": 0.0096,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 0.78
+    },
+    {
+      "cycle": 12,
+      "choice": "roll_cw",
+      "rationale": "err=-117.99deg -> roll_cw (fallback from roll_ccw)",
+      "err_before_deg": -117.989,
+      "err_after_deg": -117.928,
+      "measured_delta_deg": 0.061,
+      "drift_xy_m": 0.0097,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 0.85
+    },
+    {
+      "cycle": 13,
+      "choice": "roll_cw",
+      "rationale": "err=-117.93deg -> roll_cw (fallback from roll_ccw)",
+      "err_before_deg": -117.928,
+      "err_after_deg": -117.925,
+      "measured_delta_deg": 0.003,
+      "drift_xy_m": 0.0097,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 0.91
+    },
+    {
+      "cycle": 14,
+      "choice": "roll_lf",
+      "rationale": "err=-117.92deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -117.925,
+      "err_after_deg": -112.019,
+      "measured_delta_deg": 5.906,
+      "drift_xy_m": 0.0116,
+      "drift_z_m": -0.004,
+      "elapsed_s": 0.98
+    },
+    {
+      "cycle": 15,
+      "choice": "roll_lf",
+      "rationale": "err=-112.02deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -112.019,
+      "err_after_deg": -109.389,
+      "measured_delta_deg": 2.63,
+      "drift_xy_m": 0.0108,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 1.05
+    },
+    {
+      "cycle": 16,
+      "choice": "roll_lf",
+      "rationale": "err=-109.39deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -109.389,
+      "err_after_deg": -107.797,
+      "measured_delta_deg": 1.592,
+      "drift_xy_m": 0.0105,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 1.13
+    },
+    {
+      "cycle": 17,
+      "choice": "roll_lf",
+      "rationale": "err=-107.80deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -107.797,
+      "err_after_deg": -106.645,
+      "measured_delta_deg": 1.152,
+      "drift_xy_m": 0.0103,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 1.2
+    },
+    {
+      "cycle": 18,
+      "choice": "roll_lf",
+      "rationale": "err=-106.64deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -106.645,
+      "err_after_deg": -105.609,
+      "measured_delta_deg": 1.036,
+      "drift_xy_m": 0.0101,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 1.27
+    },
+    {
+      "cycle": 19,
+      "choice": "roll_lf",
+      "rationale": "err=-105.61deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -105.609,
+      "err_after_deg": -104.301,
+      "measured_delta_deg": 1.308,
+      "drift_xy_m": 0.0098,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 1.35
+    },
+    {
+      "cycle": 20,
+      "choice": "roll_lf",
+      "rationale": "err=-104.30deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -104.301,
+      "err_after_deg": -101.73,
+      "measured_delta_deg": 2.571,
+      "drift_xy_m": 0.0093,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 1.42
+    },
+    {
+      "cycle": 21,
+      "choice": "roll_lf",
+      "rationale": "err=-101.73deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -101.73,
+      "err_after_deg": -97.268,
+      "measured_delta_deg": 4.462,
+      "drift_xy_m": 0.0085,
+      "drift_z_m": -0.0043,
+      "elapsed_s": 1.5
+    },
+    {
+      "cycle": 22,
+      "choice": "roll_lf",
+      "rationale": "err=-97.27deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -97.268,
+      "err_after_deg": -94.858,
+      "measured_delta_deg": 2.41,
+      "drift_xy_m": 0.0084,
+      "drift_z_m": -0.0043,
+      "elapsed_s": 1.57
+    },
+    {
+      "cycle": 23,
+      "choice": "roll_lf",
+      "rationale": "err=-94.86deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -94.858,
+      "err_after_deg": -93.683,
+      "measured_delta_deg": 1.175,
+      "drift_xy_m": 0.0084,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 1.65
+    },
+    {
+      "cycle": 24,
+      "choice": "roll_lf",
+      "rationale": "err=-93.68deg -> roll_lf (fallback from roll_ccw)",
+      "err_before_deg": -93.683,
+      "err_after_deg": -92.592,
+      "measured_delta_deg": 1.091,
+      "drift_xy_m": 0.0085,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 1.71
+    }
+  ],
+  "summary": {
+    "outcome": "failure_max_cycles",
+    "n_cycles": 25,
+    "final_err_deg": -92.592,
+    "final_rot_dist_rad": 1.6247,
+    "final_drift_xy_m": 0.0085,
+    "wall_time_s": 1.71
+  }
+}

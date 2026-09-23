@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "policy": "baseline",
+    "seed": 3,
+    "max_cycles": 40,
+    "started_at": "2026-09-23T00:59:45"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "finish",
+      "rationale": "|err|=1.47deg within deadband 5.0deg",
+      "err_before_deg": -1.465,
+      "err_after_deg": -1.465,
+      "measured_delta_deg": 0.0,
+      "drift_xy_m": 0.0,
+      "elapsed_s": 0.0
+    }
+  ],
+  "summary": {
+    "outcome": "success",
+    "n_cycles": 1,
+    "final_err_deg": -1.465,
+    "final_rot_dist_rad": 0.099,
+    "final_drift_xy_m": 0.0,
+    "wall_time_s": 0.0
+  }
+}

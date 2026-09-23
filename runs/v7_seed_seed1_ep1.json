@@ -1,0 +1,293 @@
+{
+  "meta": {
+    "policy": "baseline",
+    "seed": 1,
+    "max_cycles": 25,
+    "started_at": "2026-09-23T01:09:57"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "roll_cw",
+      "rationale": "err=+75.76deg -> explore roll_cw",
+      "err_before_deg": 75.763,
+      "err_after_deg": 63.895,
+      "measured_delta_deg": -11.868,
+      "drift_xy_m": 0.0066,
+      "drift_z_m": -0.0006,
+      "elapsed_s": 0.03
+    },
+    {
+      "cycle": 1,
+      "choice": "roll_cw",
+      "rationale": "err=+63.90deg -> explore roll_cw",
+      "err_before_deg": 63.895,
+      "err_after_deg": 57.19,
+      "measured_delta_deg": -6.705,
+      "drift_xy_m": 0.0059,
+      "drift_z_m": -0.0027,
+      "elapsed_s": 0.06
+    },
+    {
+      "cycle": 2,
+      "choice": "roll_cw",
+      "rationale": "err=+57.19deg -> roll_cw (measured help +9.29deg/use)",
+      "err_before_deg": 57.19,
+      "err_after_deg": 52.704,
+      "measured_delta_deg": -4.486,
+      "drift_xy_m": 0.0075,
+      "drift_z_m": -0.0024,
+      "elapsed_s": 0.09
+    },
+    {
+      "cycle": 3,
+      "choice": "roll_cw",
+      "rationale": "err=+52.70deg -> roll_cw (measured help +5.60deg/use)",
+      "err_before_deg": 52.704,
+      "err_after_deg": 46.698,
+      "measured_delta_deg": -6.006,
+      "drift_xy_m": 0.0104,
+      "drift_z_m": -0.002,
+      "elapsed_s": 0.11
+    },
+    {
+      "cycle": 4,
+      "choice": "roll_cw",
+      "rationale": "err=+46.70deg -> roll_cw (measured help +5.25deg/use)",
+      "err_before_deg": 46.698,
+      "err_after_deg": 43.049,
+      "measured_delta_deg": -3.649,
+      "drift_xy_m": 0.0123,
+      "drift_z_m": -0.0016,
+      "elapsed_s": 0.14
+    },
+    {
+      "cycle": 5,
+      "choice": "roll_cw",
+      "rationale": "err=+43.05deg -> roll_cw (measured help +4.83deg/use)",
+      "err_before_deg": 43.049,
+      "err_after_deg": 35.463,
+      "measured_delta_deg": -7.586,
+      "drift_xy_m": 0.0135,
+      "drift_z_m": -0.0016,
+      "elapsed_s": 0.17
+    },
+    {
+      "cycle": 6,
+      "choice": "roll_cw",
+      "rationale": "err=+35.46deg -> roll_cw (measured help +5.62deg/use)",
+      "err_before_deg": 35.463,
+      "err_after_deg": 32.784,
+      "measured_delta_deg": -2.679,
+      "drift_xy_m": 0.0135,
+      "drift_z_m": -0.0023,
+      "elapsed_s": 0.2
+    },
+    {
+      "cycle": 7,
+      "choice": "roll_cw",
+      "rationale": "err=+32.78deg -> roll_cw (measured help +5.13deg/use)",
+      "err_before_deg": 32.784,
+      "err_after_deg": 32.356,
+      "measured_delta_deg": -0.428,
+      "drift_xy_m": 0.0137,
+      "drift_z_m": -0.0025,
+      "elapsed_s": 0.23
+    },
+    {
+      "cycle": 8,
+      "choice": "roll_cw",
+      "rationale": "err=+32.36deg -> roll_cw (measured help +1.55deg/use)",
+      "err_before_deg": 32.356,
+      "err_after_deg": 32.3,
+      "measured_delta_deg": -0.056,
+      "drift_xy_m": 0.0137,
+      "drift_z_m": -0.0025,
+      "elapsed_s": 0.26
+    },
+    {
+      "cycle": 9,
+      "choice": "roll_th",
+      "rationale": "err=+32.30deg -> explore roll_th",
+      "err_before_deg": 32.3,
+      "err_after_deg": 27.539,
+      "measured_delta_deg": -4.761,
+      "drift_xy_m": 0.0117,
+      "drift_z_m": -0.0019,
+      "elapsed_s": 0.29
+    },
+    {
+      "cycle": 10,
+      "choice": "roll_th",
+      "rationale": "err=+27.54deg -> explore roll_th",
+      "err_before_deg": 27.539,
+      "err_after_deg": 26.609,
+      "measured_delta_deg": -0.93,
+      "drift_xy_m": 0.0115,
+      "drift_z_m": -0.0021,
+      "elapsed_s": 0.32
+    },
+    {
+      "cycle": 11,
+      "choice": "roll_th",
+      "rationale": "err=+26.61deg -> roll_th (measured help +2.85deg/use)",
+      "err_before_deg": 26.609,
+      "err_after_deg": 26.551,
+      "measured_delta_deg": -0.058,
+      "drift_xy_m": 0.0116,
+      "drift_z_m": -0.002,
+      "elapsed_s": 0.35
+    },
+    {
+      "cycle": 12,
+      "choice": "roll_th",
+      "rationale": "err=+26.55deg -> roll_th (measured help +0.49deg/use)",
+      "err_before_deg": 26.551,
+      "err_after_deg": 26.157,
+      "measured_delta_deg": -0.394,
+      "drift_xy_m": 0.0114,
+      "drift_z_m": -0.002,
+      "elapsed_s": 0.38
+    },
+    {
+      "cycle": 13,
+      "choice": "roll_wr",
+      "rationale": "err=+26.16deg -> explore roll_wr",
+      "err_before_deg": 26.157,
+      "err_after_deg": 21.467,
+      "measured_delta_deg": -4.69,
+      "drift_xy_m": 0.0231,
+      "drift_z_m": -0.0026,
+      "elapsed_s": 0.41
+    },
+    {
+      "cycle": 14,
+      "choice": "roll_wr",
+      "rationale": "err=+21.47deg -> explore roll_wr",
+      "err_before_deg": 21.467,
+      "err_after_deg": 21.747,
+      "measured_delta_deg": 0.28,
+      "drift_xy_m": 0.0232,
+      "drift_z_m": -0.0026,
+      "elapsed_s": 0.44
+    },
+    {
+      "cycle": 15,
+      "choice": "roll_wr",
+      "rationale": "err=+21.75deg -> roll_wr (measured help +2.21deg/use)",
+      "err_before_deg": 21.747,
+      "err_after_deg": 21.881,
+      "measured_delta_deg": 0.134,
+      "drift_xy_m": 0.0232,
+      "drift_z_m": -0.0026,
+      "elapsed_s": 0.47
+    },
+    {
+      "cycle": 16,
+      "choice": "regrasp",
+      "rationale": "pair stalled at err=+21.88deg; regrasp resets contact",
+      "err_before_deg": 21.881,
+      "err_after_deg": 27.772,
+      "measured_delta_deg": 5.891,
+      "drift_xy_m": 0.0134,
+      "drift_z_m": -0.0026,
+      "elapsed_s": 0.49
+    },
+    {
+      "cycle": 17,
+      "choice": "roll_cw",
+      "rationale": "err=+27.77deg -> explore roll_cw",
+      "err_before_deg": 27.772,
+      "err_after_deg": 30.024,
+      "measured_delta_deg": 2.252,
+      "drift_xy_m": 0.0128,
+      "drift_z_m": -0.0029,
+      "elapsed_s": 0.52
+    },
+    {
+      "cycle": 18,
+      "choice": "roll_cw",
+      "rationale": "err=+30.02deg -> explore roll_cw",
+      "err_before_deg": 30.024,
+      "err_after_deg": 31.338,
+      "measured_delta_deg": 1.314,
+      "drift_xy_m": 0.0135,
+      "drift_z_m": -0.0027,
+      "elapsed_s": 0.55
+    },
+    {
+      "cycle": 19,
+      "choice": "roll_th",
+      "rationale": "err=+31.34deg -> explore roll_th",
+      "err_before_deg": 31.338,
+      "err_after_deg": 27.333,
+      "measured_delta_deg": -4.005,
+      "drift_xy_m": 0.0118,
+      "drift_z_m": -0.002,
+      "elapsed_s": 0.58
+    },
+    {
+      "cycle": 20,
+      "choice": "roll_th",
+      "rationale": "err=+27.33deg -> explore roll_th",
+      "err_before_deg": 27.333,
+      "err_after_deg": 26.555,
+      "measured_delta_deg": -0.778,
+      "drift_xy_m": 0.0116,
+      "drift_z_m": -0.002,
+      "elapsed_s": 0.61
+    },
+    {
+      "cycle": 21,
+      "choice": "roll_th",
+      "rationale": "err=+26.55deg -> roll_th (measured help +2.39deg/use)",
+      "err_before_deg": 26.555,
+      "err_after_deg": 26.172,
+      "measured_delta_deg": -0.383,
+      "drift_xy_m": 0.0114,
+      "drift_z_m": -0.002,
+      "elapsed_s": 0.64
+    },
+    {
+      "cycle": 22,
+      "choice": "roll_th",
+      "rationale": "err=+26.17deg -> roll_th (measured help +0.58deg/use)",
+      "err_before_deg": 26.172,
+      "err_after_deg": 26.049,
+      "measured_delta_deg": -0.123,
+      "drift_xy_m": 0.0114,
+      "drift_z_m": -0.002,
+      "elapsed_s": 0.67
+    },
+    {
+      "cycle": 23,
+      "choice": "roll_wr",
+      "rationale": "err=+26.05deg -> explore roll_wr",
+      "err_before_deg": 26.049,
+      "err_after_deg": 21.4,
+      "measured_delta_deg": -4.649,
+      "drift_xy_m": 0.023,
+      "drift_z_m": -0.0026,
+      "elapsed_s": 0.7
+    },
+    {
+      "cycle": 24,
+      "choice": "roll_wr",
+      "rationale": "err=+21.40deg -> explore roll_wr",
+      "err_before_deg": 21.4,
+      "err_after_deg": 21.709,
+      "measured_delta_deg": 0.309,
+      "drift_xy_m": 0.0231,
+      "drift_z_m": -0.0026,
+      "elapsed_s": 0.73
+    }
+  ],
+  "summary": {
+    "outcome": "failure_max_cycles",
+    "n_cycles": 25,
+    "final_err_deg": 21.709,
+    "final_rot_dist_rad": 0.415,
+    "final_drift_xy_m": 0.0231,
+    "wall_time_s": 0.73
+  }
+}

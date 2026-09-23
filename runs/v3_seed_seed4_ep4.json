@@ -1,0 +1,293 @@
+{
+  "meta": {
+    "policy": "baseline",
+    "seed": 4,
+    "max_cycles": 25,
+    "started_at": "2026-09-23T00:52:48"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "roll_cw",
+      "rationale": "err=+128.39deg -> roll_cw",
+      "err_before_deg": 128.386,
+      "err_after_deg": 129.413,
+      "measured_delta_deg": 1.027,
+      "drift_xy_m": 0.002,
+      "drift_z_m": -0.0014,
+      "elapsed_s": 0.03
+    },
+    {
+      "cycle": 1,
+      "choice": "roll_cw",
+      "rationale": "err=+129.41deg -> roll_cw",
+      "err_before_deg": 129.413,
+      "err_after_deg": 129.79,
+      "measured_delta_deg": 0.377,
+      "drift_xy_m": 0.0019,
+      "drift_z_m": -0.0014,
+      "elapsed_s": 0.06
+    },
+    {
+      "cycle": 2,
+      "choice": "roll_cw",
+      "rationale": "err=+129.79deg -> roll_cw",
+      "err_before_deg": 129.79,
+      "err_after_deg": 129.892,
+      "measured_delta_deg": 0.102,
+      "drift_xy_m": 0.0019,
+      "drift_z_m": -0.0014,
+      "elapsed_s": 0.08
+    },
+    {
+      "cycle": 3,
+      "choice": "roll_ccw",
+      "rationale": "err=+129.89deg -> roll_ccw (fallback from roll_cw)",
+      "err_before_deg": 129.892,
+      "err_after_deg": 127.706,
+      "measured_delta_deg": -2.186,
+      "drift_xy_m": 0.0027,
+      "drift_z_m": -0.001,
+      "elapsed_s": 0.11
+    },
+    {
+      "cycle": 4,
+      "choice": "roll_ccw",
+      "rationale": "err=+127.71deg -> roll_ccw (fallback from roll_cw)",
+      "err_before_deg": 127.706,
+      "err_after_deg": 124.597,
+      "measured_delta_deg": -3.109,
+      "drift_xy_m": 0.0044,
+      "drift_z_m": -0.0013,
+      "elapsed_s": 0.14
+    },
+    {
+      "cycle": 5,
+      "choice": "roll_ccw",
+      "rationale": "err=+124.60deg -> roll_ccw (fallback from roll_cw)",
+      "err_before_deg": 124.597,
+      "err_after_deg": 122.545,
+      "measured_delta_deg": -2.052,
+      "drift_xy_m": 0.0053,
+      "drift_z_m": -0.0012,
+      "elapsed_s": 0.17
+    },
+    {
+      "cycle": 6,
+      "choice": "roll_ccw",
+      "rationale": "err=+122.55deg -> roll_ccw (fallback from roll_cw)",
+      "err_before_deg": 122.545,
+      "err_after_deg": 121.386,
+      "measured_delta_deg": -1.159,
+      "drift_xy_m": 0.0059,
+      "drift_z_m": -0.0011,
+      "elapsed_s": 0.2
+    },
+    {
+      "cycle": 7,
+      "choice": "roll_ccw",
+      "rationale": "err=+121.39deg -> roll_ccw (fallback from roll_cw)",
+      "err_before_deg": 121.386,
+      "err_after_deg": 120.847,
+      "measured_delta_deg": -0.539,
+      "drift_xy_m": 0.0061,
+      "drift_z_m": -0.0011,
+      "elapsed_s": 0.23
+    },
+    {
+      "cycle": 8,
+      "choice": "roll_ccw",
+      "rationale": "err=+120.85deg -> roll_ccw (fallback from roll_cw)",
+      "err_before_deg": 120.847,
+      "err_after_deg": 120.976,
+      "measured_delta_deg": 0.129,
+      "drift_xy_m": 0.006,
+      "drift_z_m": -0.0011,
+      "elapsed_s": 0.26
+    },
+    {
+      "cycle": 9,
+      "choice": "roll_th",
+      "rationale": "err=+120.98deg -> roll_th (fallback from roll_cw)",
+      "err_before_deg": 120.976,
+      "err_after_deg": 123.157,
+      "measured_delta_deg": 2.181,
+      "drift_xy_m": 0.0064,
+      "drift_z_m": -0.0009,
+      "elapsed_s": 0.29
+    },
+    {
+      "cycle": 10,
+      "choice": "roll_th",
+      "rationale": "err=+123.16deg -> roll_th (fallback from roll_cw)",
+      "err_before_deg": 123.157,
+      "err_after_deg": 124.886,
+      "measured_delta_deg": 1.729,
+      "drift_xy_m": 0.0052,
+      "drift_z_m": -0.0007,
+      "elapsed_s": 0.32
+    },
+    {
+      "cycle": 11,
+      "choice": "roll_lf",
+      "rationale": "err=+124.89deg -> roll_lf (fallback from roll_cw)",
+      "err_before_deg": 124.886,
+      "err_after_deg": 119.597,
+      "measured_delta_deg": -5.289,
+      "drift_xy_m": 0.0062,
+      "drift_z_m": -0.0005,
+      "elapsed_s": 0.34
+    },
+    {
+      "cycle": 12,
+      "choice": "roll_lf",
+      "rationale": "err=+119.60deg -> roll_lf (fallback from roll_cw)",
+      "err_before_deg": 119.597,
+      "err_after_deg": 119.914,
+      "measured_delta_deg": 0.317,
+      "drift_xy_m": 0.006,
+      "drift_z_m": -0.0005,
+      "elapsed_s": 0.37
+    },
+    {
+      "cycle": 13,
+      "choice": "roll_lf",
+      "rationale": "err=+119.91deg -> roll_lf (fallback from roll_cw)",
+      "err_before_deg": 119.914,
+      "err_after_deg": 120.136,
+      "measured_delta_deg": 0.222,
+      "drift_xy_m": 0.0059,
+      "drift_z_m": -0.0005,
+      "elapsed_s": 0.4
+    },
+    {
+      "cycle": 14,
+      "choice": "regrasp",
+      "rationale": "all roll gaits demoted at err=+120.14deg; reset contact mode",
+      "err_before_deg": 120.136,
+      "err_after_deg": 120.137,
+      "measured_delta_deg": 0.001,
+      "drift_xy_m": 0.0085,
+      "drift_z_m": -0.0001,
+      "elapsed_s": 0.42
+    },
+    {
+      "cycle": 15,
+      "choice": "roll_cw",
+      "rationale": "err=+120.14deg -> roll_cw",
+      "err_before_deg": 120.137,
+      "err_after_deg": 110.682,
+      "measured_delta_deg": -9.455,
+      "drift_xy_m": 0.0088,
+      "drift_z_m": 0.0001,
+      "elapsed_s": 0.45
+    },
+    {
+      "cycle": 16,
+      "choice": "roll_cw",
+      "rationale": "err=+110.68deg -> roll_cw",
+      "err_before_deg": 110.682,
+      "err_after_deg": 107.086,
+      "measured_delta_deg": -3.596,
+      "drift_xy_m": 0.0089,
+      "drift_z_m": -0.0006,
+      "elapsed_s": 0.49
+    },
+    {
+      "cycle": 17,
+      "choice": "roll_cw",
+      "rationale": "err=+107.09deg -> roll_cw",
+      "err_before_deg": 107.086,
+      "err_after_deg": 106.146,
+      "measured_delta_deg": -0.94,
+      "drift_xy_m": 0.0091,
+      "drift_z_m": -0.001,
+      "elapsed_s": 0.55
+    },
+    {
+      "cycle": 18,
+      "choice": "roll_cw",
+      "rationale": "err=+106.15deg -> roll_cw",
+      "err_before_deg": 106.146,
+      "err_after_deg": 105.949,
+      "measured_delta_deg": -0.197,
+      "drift_xy_m": 0.0092,
+      "drift_z_m": -0.001,
+      "elapsed_s": 0.62
+    },
+    {
+      "cycle": 19,
+      "choice": "roll_ccw",
+      "rationale": "err=+105.95deg -> roll_ccw (fallback from roll_cw)",
+      "err_before_deg": 105.949,
+      "err_after_deg": 112.377,
+      "measured_delta_deg": 6.428,
+      "drift_xy_m": 0.0082,
+      "drift_z_m": -0.0001,
+      "elapsed_s": 0.68
+    },
+    {
+      "cycle": 20,
+      "choice": "roll_ccw",
+      "rationale": "err=+112.38deg -> roll_ccw (fallback from roll_cw)",
+      "err_before_deg": 112.377,
+      "err_after_deg": 122.789,
+      "measured_delta_deg": 10.412,
+      "drift_xy_m": 0.0051,
+      "drift_z_m": -0.0014,
+      "elapsed_s": 0.75
+    },
+    {
+      "cycle": 21,
+      "choice": "roll_th",
+      "rationale": "err=+122.79deg -> roll_th (fallback from roll_cw)",
+      "err_before_deg": 122.789,
+      "err_after_deg": 123.687,
+      "measured_delta_deg": 0.898,
+      "drift_xy_m": 0.0056,
+      "drift_z_m": 0.0007,
+      "elapsed_s": 0.81
+    },
+    {
+      "cycle": 22,
+      "choice": "roll_th",
+      "rationale": "err=+123.69deg -> roll_th (fallback from roll_cw)",
+      "err_before_deg": 123.687,
+      "err_after_deg": 124.465,
+      "measured_delta_deg": 0.778,
+      "drift_xy_m": 0.0055,
+      "drift_z_m": 0.0008,
+      "elapsed_s": 0.89
+    },
+    {
+      "cycle": 23,
+      "choice": "roll_lf",
+      "rationale": "err=+124.47deg -> roll_lf (fallback from roll_cw)",
+      "err_before_deg": 124.465,
+      "err_after_deg": 121.492,
+      "measured_delta_deg": -2.973,
+      "drift_xy_m": 0.0059,
+      "drift_z_m": -0.001,
+      "elapsed_s": 0.96
+    },
+    {
+      "cycle": 24,
+      "choice": "roll_lf",
+      "rationale": "err=+121.49deg -> roll_lf (fallback from roll_cw)",
+      "err_before_deg": 121.492,
+      "err_after_deg": 118.727,
+      "measured_delta_deg": -2.765,
+      "drift_xy_m": 0.0069,
+      "drift_z_m": -0.0007,
+      "elapsed_s": 1.02
+    }
+  ],
+  "summary": {
+    "outcome": "failure_max_cycles",
+    "n_cycles": 25,
+    "final_err_deg": 118.727,
+    "final_rot_dist_rad": 2.0762,
+    "final_drift_xy_m": 0.0069,
+    "wall_time_s": 1.02
+  }
+}

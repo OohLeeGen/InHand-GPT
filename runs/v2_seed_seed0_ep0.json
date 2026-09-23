@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "policy": "baseline",
+    "seed": 0,
+    "max_cycles": 25,
+    "started_at": "2026-09-23T00:47:57"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "roll_ccw_r",
+      "rationale": "err=-61.16deg -> roll_ccw_r",
+      "err_before_deg": -61.158,
+      "err_after_deg": -54.427,
+      "measured_delta_deg": 6.731,
+      "drift_xy_m": 0.0126,
+      "drift_z_m": 0.0008,
+      "elapsed_s": 0.03
+    },
+    {
+      "cycle": 1,
+      "choice": "roll_ccw_r",
+      "rationale": "err=-54.43deg -> roll_ccw_r",
+      "err_before_deg": -54.427,
+      "err_after_deg": -48.004,
+      "measured_delta_deg": 6.423,
+      "drift_xy_m": 0.0263,
+      "drift_z_m": 0.0015,
+      "elapsed_s": 0.06
+    }
+  ],
+  "summary": {
+    "outcome": "failure_dropped",
+    "n_cycles": 2,
+    "final_err_deg": -48.004,
+    "final_rot_dist_rad": 0.8525,
+    "final_drift_xy_m": 0.0263,
+    "wall_time_s": 0.06
+  }
+}

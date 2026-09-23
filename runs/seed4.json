@@ -1,0 +1,293 @@
+{
+  "meta": {
+    "policy": "baseline",
+    "seed": 4,
+    "max_cycles": 25,
+    "started_at": "2026-09-23T01:14:45"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "roll_cw",
+      "rationale": "err=+128.39deg -> explore roll_cw",
+      "err_before_deg": 128.386,
+      "err_after_deg": 129.413,
+      "measured_delta_deg": 1.027,
+      "drift_xy_m": 0.002,
+      "drift_z_m": -0.0014,
+      "elapsed_s": 0.06
+    },
+    {
+      "cycle": 1,
+      "choice": "roll_cw",
+      "rationale": "err=+129.41deg -> explore roll_cw",
+      "err_before_deg": 129.413,
+      "err_after_deg": 129.79,
+      "measured_delta_deg": 0.377,
+      "drift_xy_m": 0.0019,
+      "drift_z_m": -0.0014,
+      "elapsed_s": 0.12
+    },
+    {
+      "cycle": 2,
+      "choice": "roll_th",
+      "rationale": "err=+129.79deg -> explore roll_th",
+      "err_before_deg": 129.79,
+      "err_after_deg": 131.257,
+      "measured_delta_deg": 1.467,
+      "drift_xy_m": 0.0034,
+      "drift_z_m": -0.0006,
+      "elapsed_s": 0.18
+    },
+    {
+      "cycle": 3,
+      "choice": "roll_th",
+      "rationale": "err=+131.26deg -> explore roll_th",
+      "err_before_deg": 131.257,
+      "err_after_deg": 131.808,
+      "measured_delta_deg": 0.551,
+      "drift_xy_m": 0.0035,
+      "drift_z_m": -0.0004,
+      "elapsed_s": 0.24
+    },
+    {
+      "cycle": 4,
+      "choice": "roll_wr",
+      "rationale": "err=+131.81deg -> explore roll_wr",
+      "err_before_deg": 131.808,
+      "err_after_deg": 126.058,
+      "measured_delta_deg": -5.75,
+      "drift_xy_m": 0.0112,
+      "drift_z_m": -0.0001,
+      "elapsed_s": 0.3
+    },
+    {
+      "cycle": 5,
+      "choice": "roll_wr",
+      "rationale": "err=+126.06deg -> explore roll_wr",
+      "err_before_deg": 126.058,
+      "err_after_deg": 126.315,
+      "measured_delta_deg": 0.257,
+      "drift_xy_m": 0.0111,
+      "drift_z_m": 0.0,
+      "elapsed_s": 0.36
+    },
+    {
+      "cycle": 6,
+      "choice": "roll_wr",
+      "rationale": "err=+126.31deg -> roll_wr (measured help +2.75deg/use)",
+      "err_before_deg": 126.315,
+      "err_after_deg": 126.723,
+      "measured_delta_deg": 0.408,
+      "drift_xy_m": 0.011,
+      "drift_z_m": 0.0002,
+      "elapsed_s": 0.43
+    },
+    {
+      "cycle": 7,
+      "choice": "regrasp",
+      "rationale": "pair stalled at err=+126.72deg; regrasp resets contact",
+      "err_before_deg": 126.723,
+      "err_after_deg": 129.721,
+      "measured_delta_deg": 2.998,
+      "drift_xy_m": 0.0043,
+      "drift_z_m": -0.001,
+      "elapsed_s": 0.47
+    },
+    {
+      "cycle": 8,
+      "choice": "roll_cw",
+      "rationale": "err=+129.72deg -> explore roll_cw",
+      "err_before_deg": 129.721,
+      "err_after_deg": 129.187,
+      "measured_delta_deg": -0.534,
+      "drift_xy_m": 0.0021,
+      "drift_z_m": -0.0013,
+      "elapsed_s": 0.53
+    },
+    {
+      "cycle": 9,
+      "choice": "roll_cw",
+      "rationale": "err=+129.19deg -> explore roll_cw",
+      "err_before_deg": 129.187,
+      "err_after_deg": 129.486,
+      "measured_delta_deg": 0.299,
+      "drift_xy_m": 0.002,
+      "drift_z_m": -0.0014,
+      "elapsed_s": 0.59
+    },
+    {
+      "cycle": 10,
+      "choice": "roll_th",
+      "rationale": "err=+129.49deg -> explore roll_th",
+      "err_before_deg": 129.486,
+      "err_after_deg": 131.227,
+      "measured_delta_deg": 1.741,
+      "drift_xy_m": 0.0034,
+      "drift_z_m": -0.0006,
+      "elapsed_s": 0.65
+    },
+    {
+      "cycle": 11,
+      "choice": "roll_th",
+      "rationale": "err=+131.23deg -> explore roll_th",
+      "err_before_deg": 131.227,
+      "err_after_deg": 131.806,
+      "measured_delta_deg": 0.579,
+      "drift_xy_m": 0.0035,
+      "drift_z_m": -0.0004,
+      "elapsed_s": 0.72
+    },
+    {
+      "cycle": 12,
+      "choice": "roll_wr",
+      "rationale": "err=+131.81deg -> explore roll_wr",
+      "err_before_deg": 131.806,
+      "err_after_deg": 126.059,
+      "measured_delta_deg": -5.747,
+      "drift_xy_m": 0.0112,
+      "drift_z_m": -0.0001,
+      "elapsed_s": 0.78
+    },
+    {
+      "cycle": 13,
+      "choice": "roll_wr",
+      "rationale": "err=+126.06deg -> explore roll_wr",
+      "err_before_deg": 126.059,
+      "err_after_deg": 126.318,
+      "measured_delta_deg": 0.259,
+      "drift_xy_m": 0.0111,
+      "drift_z_m": 0.0,
+      "elapsed_s": 0.84
+    },
+    {
+      "cycle": 14,
+      "choice": "roll_wr",
+      "rationale": "err=+126.32deg -> roll_wr (measured help +2.74deg/use)",
+      "err_before_deg": 126.318,
+      "err_after_deg": 126.729,
+      "measured_delta_deg": 0.411,
+      "drift_xy_m": 0.011,
+      "drift_z_m": 0.0002,
+      "elapsed_s": 0.9
+    },
+    {
+      "cycle": 15,
+      "choice": "regrasp",
+      "rationale": "pair stalled at err=+126.73deg; regrasp resets contact",
+      "err_before_deg": 126.729,
+      "err_after_deg": 129.635,
+      "measured_delta_deg": 2.906,
+      "drift_xy_m": 0.0043,
+      "drift_z_m": -0.001,
+      "elapsed_s": 0.95
+    },
+    {
+      "cycle": 16,
+      "choice": "roll_cw",
+      "rationale": "err=+129.63deg -> explore roll_cw",
+      "err_before_deg": 129.635,
+      "err_after_deg": 129.068,
+      "measured_delta_deg": -0.567,
+      "drift_xy_m": 0.0021,
+      "drift_z_m": -0.0013,
+      "elapsed_s": 1.01
+    },
+    {
+      "cycle": 17,
+      "choice": "roll_cw",
+      "rationale": "err=+129.07deg -> explore roll_cw",
+      "err_before_deg": 129.068,
+      "err_after_deg": 129.299,
+      "measured_delta_deg": 0.231,
+      "drift_xy_m": 0.002,
+      "drift_z_m": -0.0013,
+      "elapsed_s": 1.07
+    },
+    {
+      "cycle": 18,
+      "choice": "roll_th",
+      "rationale": "err=+129.30deg -> explore roll_th",
+      "err_before_deg": 129.299,
+      "err_after_deg": 131.203,
+      "measured_delta_deg": 1.904,
+      "drift_xy_m": 0.0034,
+      "drift_z_m": -0.0006,
+      "elapsed_s": 1.13
+    },
+    {
+      "cycle": 19,
+      "choice": "roll_th",
+      "rationale": "err=+131.20deg -> explore roll_th",
+      "err_before_deg": 131.203,
+      "err_after_deg": 131.796,
+      "measured_delta_deg": 0.593,
+      "drift_xy_m": 0.0035,
+      "drift_z_m": -0.0004,
+      "elapsed_s": 1.19
+    },
+    {
+      "cycle": 20,
+      "choice": "roll_wr",
+      "rationale": "err=+131.80deg -> explore roll_wr",
+      "err_before_deg": 131.796,
+      "err_after_deg": 126.055,
+      "measured_delta_deg": -5.741,
+      "drift_xy_m": 0.0112,
+      "drift_z_m": -0.0001,
+      "elapsed_s": 1.26
+    },
+    {
+      "cycle": 21,
+      "choice": "roll_wr",
+      "rationale": "err=+126.06deg -> explore roll_wr",
+      "err_before_deg": 126.055,
+      "err_after_deg": 126.312,
+      "measured_delta_deg": 0.257,
+      "drift_xy_m": 0.0111,
+      "drift_z_m": 0.0,
+      "elapsed_s": 1.32
+    },
+    {
+      "cycle": 22,
+      "choice": "roll_wr",
+      "rationale": "err=+126.31deg -> roll_wr (measured help +2.74deg/use)",
+      "err_before_deg": 126.312,
+      "err_after_deg": 126.72,
+      "measured_delta_deg": 0.408,
+      "drift_xy_m": 0.011,
+      "drift_z_m": 0.0002,
+      "elapsed_s": 1.39
+    },
+    {
+      "cycle": 23,
+      "choice": "regrasp",
+      "rationale": "pair stalled at err=+126.72deg; regrasp resets contact",
+      "err_before_deg": 126.72,
+      "err_after_deg": 129.633,
+      "measured_delta_deg": 2.913,
+      "drift_xy_m": 0.0043,
+      "drift_z_m": -0.001,
+      "elapsed_s": 1.43
+    },
+    {
+      "cycle": 24,
+      "choice": "roll_cw",
+      "rationale": "err=+129.63deg -> explore roll_cw",
+      "err_before_deg": 129.633,
+      "err_after_deg": 129.067,
+      "measured_delta_deg": -0.566,
+      "drift_xy_m": 0.0021,
+      "drift_z_m": -0.0013,
+      "elapsed_s": 1.49
+    }
+  ],
+  "summary": {
+    "outcome": "failure_max_cycles",
+    "n_cycles": 25,
+    "final_err_deg": 129.067,
+    "final_rot_dist_rad": 2.2555,
+    "final_drift_xy_m": 0.0021,
+    "wall_time_s": 1.49
+  }
+}

@@ -1,0 +1,293 @@
+{
+  "meta": {
+    "policy": "baseline",
+    "seed": 2,
+    "max_cycles": 25,
+    "started_at": "2026-09-23T01:07:22"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "roll_ccw",
+      "rationale": "err=-116.59deg -> explore roll_ccw",
+      "err_before_deg": -116.587,
+      "err_after_deg": -119.976,
+      "measured_delta_deg": -3.389,
+      "drift_xy_m": 0.0042,
+      "drift_z_m": -0.0016,
+      "elapsed_s": 0.03
+    },
+    {
+      "cycle": 1,
+      "choice": "roll_ccw",
+      "rationale": "err=-119.98deg -> explore roll_ccw",
+      "err_before_deg": -119.976,
+      "err_after_deg": -119.912,
+      "measured_delta_deg": 0.064,
+      "drift_xy_m": 0.0072,
+      "drift_z_m": -0.0025,
+      "elapsed_s": 0.05
+    },
+    {
+      "cycle": 2,
+      "choice": "roll_lf",
+      "rationale": "err=-119.91deg -> explore roll_lf",
+      "err_before_deg": -119.912,
+      "err_after_deg": -109.903,
+      "measured_delta_deg": 10.009,
+      "drift_xy_m": 0.011,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.08
+    },
+    {
+      "cycle": 3,
+      "choice": "roll_lf",
+      "rationale": "err=-109.90deg -> explore roll_lf",
+      "err_before_deg": -109.903,
+      "err_after_deg": -108.13,
+      "measured_delta_deg": 1.773,
+      "drift_xy_m": 0.0106,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.11
+    },
+    {
+      "cycle": 4,
+      "choice": "roll_lf",
+      "rationale": "err=-108.13deg -> roll_lf (measured help +5.89deg/use)",
+      "err_before_deg": -108.13,
+      "err_after_deg": -106.892,
+      "measured_delta_deg": 1.238,
+      "drift_xy_m": 0.0103,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 0.14
+    },
+    {
+      "cycle": 5,
+      "choice": "roll_lf",
+      "rationale": "err=-106.89deg -> roll_lf (measured help +1.51deg/use)",
+      "err_before_deg": -106.892,
+      "err_after_deg": -105.843,
+      "measured_delta_deg": 1.049,
+      "drift_xy_m": 0.0101,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 0.17
+    },
+    {
+      "cycle": 6,
+      "choice": "roll_lf",
+      "rationale": "err=-105.84deg -> roll_lf (measured help +1.14deg/use)",
+      "err_before_deg": -105.843,
+      "err_after_deg": -104.653,
+      "measured_delta_deg": 1.19,
+      "drift_xy_m": 0.0099,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 0.21
+    },
+    {
+      "cycle": 7,
+      "choice": "roll_lf",
+      "rationale": "err=-104.65deg -> roll_lf (measured help +1.12deg/use)",
+      "err_before_deg": -104.653,
+      "err_after_deg": -102.506,
+      "measured_delta_deg": 2.147,
+      "drift_xy_m": 0.0095,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 0.24
+    },
+    {
+      "cycle": 8,
+      "choice": "roll_lf",
+      "rationale": "err=-102.51deg -> roll_lf (measured help +1.67deg/use)",
+      "err_before_deg": -102.506,
+      "err_after_deg": -98.265,
+      "measured_delta_deg": 4.241,
+      "drift_xy_m": 0.0086,
+      "drift_z_m": -0.0043,
+      "elapsed_s": 0.27
+    },
+    {
+      "cycle": 9,
+      "choice": "roll_lf",
+      "rationale": "err=-98.27deg -> roll_lf (measured help +3.19deg/use)",
+      "err_before_deg": -98.265,
+      "err_after_deg": -95.196,
+      "measured_delta_deg": 3.069,
+      "drift_xy_m": 0.0084,
+      "drift_z_m": -0.0043,
+      "elapsed_s": 0.3
+    },
+    {
+      "cycle": 10,
+      "choice": "roll_lf",
+      "rationale": "err=-95.20deg -> roll_lf (measured help +3.66deg/use)",
+      "err_before_deg": -95.196,
+      "err_after_deg": -93.939,
+      "measured_delta_deg": 1.257,
+      "drift_xy_m": 0.0084,
+      "drift_z_m": -0.0043,
+      "elapsed_s": 0.33
+    },
+    {
+      "cycle": 11,
+      "choice": "roll_lf",
+      "rationale": "err=-93.94deg -> roll_lf (measured help +2.16deg/use)",
+      "err_before_deg": -93.939,
+      "err_after_deg": -92.848,
+      "measured_delta_deg": 1.091,
+      "drift_xy_m": 0.0085,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 0.36
+    },
+    {
+      "cycle": 12,
+      "choice": "roll_lf",
+      "rationale": "err=-92.85deg -> roll_lf (measured help +1.17deg/use)",
+      "err_before_deg": -92.848,
+      "err_after_deg": -91.714,
+      "measured_delta_deg": 1.134,
+      "drift_xy_m": 0.0085,
+      "drift_z_m": -0.0042,
+      "elapsed_s": 0.39
+    },
+    {
+      "cycle": 13,
+      "choice": "roll_lf",
+      "rationale": "err=-91.71deg -> roll_lf (measured help +1.11deg/use)",
+      "err_before_deg": -91.714,
+      "err_after_deg": -90.331,
+      "measured_delta_deg": 1.383,
+      "drift_xy_m": 0.0086,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.42
+    },
+    {
+      "cycle": 14,
+      "choice": "roll_lf",
+      "rationale": "err=-90.33deg -> roll_lf (measured help +1.26deg/use)",
+      "err_before_deg": -90.331,
+      "err_after_deg": -88.28,
+      "measured_delta_deg": 2.051,
+      "drift_xy_m": 0.0089,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.45
+    },
+    {
+      "cycle": 15,
+      "choice": "roll_lf",
+      "rationale": "err=-88.28deg -> roll_lf (measured help +1.72deg/use)",
+      "err_before_deg": -88.28,
+      "err_after_deg": -84.705,
+      "measured_delta_deg": 3.575,
+      "drift_xy_m": 0.0096,
+      "drift_z_m": -0.0039,
+      "elapsed_s": 0.48
+    },
+    {
+      "cycle": 16,
+      "choice": "roll_lf",
+      "rationale": "err=-84.70deg -> roll_lf (measured help +2.81deg/use)",
+      "err_before_deg": -84.705,
+      "err_after_deg": -77.182,
+      "measured_delta_deg": 7.523,
+      "drift_xy_m": 0.0119,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 0.51
+    },
+    {
+      "cycle": 17,
+      "choice": "roll_lf",
+      "rationale": "err=-77.18deg -> roll_lf (measured help +5.55deg/use)",
+      "err_before_deg": -77.182,
+      "err_after_deg": -73.694,
+      "measured_delta_deg": 3.488,
+      "drift_xy_m": 0.0129,
+      "drift_z_m": -0.0034,
+      "elapsed_s": 0.54
+    },
+    {
+      "cycle": 18,
+      "choice": "roll_lf",
+      "rationale": "err=-73.69deg -> roll_lf (measured help +5.51deg/use)",
+      "err_before_deg": -73.694,
+      "err_after_deg": -72.384,
+      "measured_delta_deg": 1.31,
+      "drift_xy_m": 0.0131,
+      "drift_z_m": -0.0033,
+      "elapsed_s": 0.57
+    },
+    {
+      "cycle": 19,
+      "choice": "roll_lf",
+      "rationale": "err=-72.38deg -> roll_lf (measured help +2.40deg/use)",
+      "err_before_deg": -72.384,
+      "err_after_deg": -71.827,
+      "measured_delta_deg": 0.557,
+      "drift_xy_m": 0.0132,
+      "drift_z_m": -0.0034,
+      "elapsed_s": 0.59
+    },
+    {
+      "cycle": 20,
+      "choice": "roll_lf",
+      "rationale": "err=-71.83deg -> roll_lf (measured help +0.93deg/use)",
+      "err_before_deg": -71.827,
+      "err_after_deg": -71.741,
+      "measured_delta_deg": 0.086,
+      "drift_xy_m": 0.0132,
+      "drift_z_m": -0.0035,
+      "elapsed_s": 0.62
+    },
+    {
+      "cycle": 21,
+      "choice": "roll_lf",
+      "rationale": "err=-71.74deg -> roll_lf (measured help +0.32deg/use)",
+      "err_before_deg": -71.741,
+      "err_after_deg": -71.563,
+      "measured_delta_deg": 0.178,
+      "drift_xy_m": 0.0132,
+      "drift_z_m": -0.0034,
+      "elapsed_s": 0.65
+    },
+    {
+      "cycle": 22,
+      "choice": "regrasp",
+      "rationale": "pair stalled at err=-71.56deg; regrasp resets contact",
+      "err_before_deg": -71.563,
+      "err_after_deg": -74.793,
+      "measured_delta_deg": -3.23,
+      "drift_xy_m": 0.0138,
+      "drift_z_m": -0.0032,
+      "elapsed_s": 0.67
+    },
+    {
+      "cycle": 23,
+      "choice": "roll_ccw",
+      "rationale": "err=-74.79deg -> explore roll_ccw",
+      "err_before_deg": -74.793,
+      "err_after_deg": -77.493,
+      "measured_delta_deg": -2.7,
+      "drift_xy_m": 0.0125,
+      "drift_z_m": -0.004,
+      "elapsed_s": 0.69
+    },
+    {
+      "cycle": 24,
+      "choice": "roll_ccw",
+      "rationale": "err=-77.49deg -> explore roll_ccw",
+      "err_before_deg": -77.493,
+      "err_after_deg": -76.233,
+      "measured_delta_deg": 1.26,
+      "drift_xy_m": 0.0126,
+      "drift_z_m": -0.0041,
+      "elapsed_s": 0.72
+    }
+  ],
+  "summary": {
+    "outcome": "failure_max_cycles",
+    "n_cycles": 25,
+    "final_err_deg": -76.233,
+    "final_rot_dist_rad": 1.3422,
+    "final_drift_xy_m": 0.0126,
+    "wall_time_s": 0.72
+  }
+}

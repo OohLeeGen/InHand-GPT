@@ -1,0 +1,293 @@
+{
+  "meta": {
+    "policy": "baseline",
+    "seed": 4,
+    "max_cycles": 25,
+    "started_at": "2026-09-23T01:04:52"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "roll_cw",
+      "rationale": "err=+128.39deg -> explore roll_cw",
+      "err_before_deg": 128.386,
+      "err_after_deg": 129.413,
+      "measured_delta_deg": 1.027,
+      "drift_xy_m": 0.002,
+      "drift_z_m": -0.0014,
+      "elapsed_s": 0.03
+    },
+    {
+      "cycle": 1,
+      "choice": "roll_ccw",
+      "rationale": "err=+129.41deg -> explore roll_ccw",
+      "err_before_deg": 129.413,
+      "err_after_deg": 127.502,
+      "measured_delta_deg": -1.911,
+      "drift_xy_m": 0.0028,
+      "drift_z_m": -0.0011,
+      "elapsed_s": 0.05
+    },
+    {
+      "cycle": 2,
+      "choice": "roll_th",
+      "rationale": "err=+127.50deg -> explore roll_th",
+      "err_before_deg": 127.502,
+      "err_after_deg": 127.961,
+      "measured_delta_deg": 0.459,
+      "drift_xy_m": 0.0037,
+      "drift_z_m": 0.0,
+      "elapsed_s": 0.08
+    },
+    {
+      "cycle": 3,
+      "choice": "roll_lf",
+      "rationale": "err=+127.96deg -> explore roll_lf",
+      "err_before_deg": 127.961,
+      "err_after_deg": 124.108,
+      "measured_delta_deg": -3.853,
+      "drift_xy_m": 0.0047,
+      "drift_z_m": -0.001,
+      "elapsed_s": 0.12
+    },
+    {
+      "cycle": 4,
+      "choice": "roll_lf",
+      "rationale": "err=+124.11deg -> second trial of roll_lf (first help +3.85deg)",
+      "err_before_deg": 124.108,
+      "err_after_deg": 119.47,
+      "measured_delta_deg": -4.638,
+      "drift_xy_m": 0.0064,
+      "drift_z_m": -0.0006,
+      "elapsed_s": 0.15
+    },
+    {
+      "cycle": 5,
+      "choice": "roll_lf",
+      "rationale": "err=+119.47deg -> roll_lf (measured help +4.25deg/use)",
+      "err_before_deg": 119.47,
+      "err_after_deg": 119.197,
+      "measured_delta_deg": -0.273,
+      "drift_xy_m": 0.0065,
+      "drift_z_m": -0.0005,
+      "elapsed_s": 0.18
+    },
+    {
+      "cycle": 6,
+      "choice": "roll_lf",
+      "rationale": "err=+119.20deg -> roll_lf (measured help +2.46deg/use)",
+      "err_before_deg": 119.197,
+      "err_after_deg": 119.605,
+      "measured_delta_deg": 0.408,
+      "drift_xy_m": 0.0062,
+      "drift_z_m": -0.0005,
+      "elapsed_s": 0.21
+    },
+    {
+      "cycle": 7,
+      "choice": "roll_ccw",
+      "rationale": "err=+119.61deg -> second trial of roll_ccw (first help +1.91deg)",
+      "err_before_deg": 119.605,
+      "err_after_deg": 121.76,
+      "measured_delta_deg": 2.155,
+      "drift_xy_m": 0.0064,
+      "drift_z_m": -0.0005,
+      "elapsed_s": 0.24
+    },
+    {
+      "cycle": 8,
+      "choice": "roll_th",
+      "rationale": "err=+121.76deg -> second trial of roll_th (first help -0.46deg)",
+      "err_before_deg": 121.76,
+      "err_after_deg": 123.36,
+      "measured_delta_deg": 1.6,
+      "drift_xy_m": 0.0059,
+      "drift_z_m": -0.0008,
+      "elapsed_s": 0.27
+    },
+    {
+      "cycle": 9,
+      "choice": "roll_cw",
+      "rationale": "err=+123.36deg -> second trial of roll_cw (first help -1.03deg)",
+      "err_before_deg": 123.36,
+      "err_after_deg": 122.74,
+      "measured_delta_deg": -0.62,
+      "drift_xy_m": 0.0085,
+      "drift_z_m": -0.0001,
+      "elapsed_s": 0.29
+    },
+    {
+      "cycle": 10,
+      "choice": "regrasp",
+      "rationale": "no gait helps at err=+122.74deg; reset contact mode",
+      "err_before_deg": 122.74,
+      "err_after_deg": 124.007,
+      "measured_delta_deg": 1.267,
+      "drift_xy_m": 0.0064,
+      "drift_z_m": 0.0017,
+      "elapsed_s": 0.32
+    },
+    {
+      "cycle": 11,
+      "choice": "regrasp",
+      "rationale": "no gait helps at err=+124.01deg; reset contact mode",
+      "err_before_deg": 124.007,
+      "err_after_deg": 124.968,
+      "measured_delta_deg": 0.961,
+      "drift_xy_m": 0.0065,
+      "drift_z_m": 0.0019,
+      "elapsed_s": 0.36
+    },
+    {
+      "cycle": 12,
+      "choice": "roll_lf",
+      "rationale": "regrasp twice without recovery; least-harmful roll_lf",
+      "err_before_deg": 124.968,
+      "err_after_deg": 118.383,
+      "measured_delta_deg": -6.585,
+      "drift_xy_m": 0.008,
+      "drift_z_m": -0.0006,
+      "elapsed_s": 0.43
+    },
+    {
+      "cycle": 13,
+      "choice": "roll_lf",
+      "rationale": "err=+118.38deg -> roll_lf (measured help +3.09deg/use)",
+      "err_before_deg": 118.383,
+      "err_after_deg": 118.196,
+      "measured_delta_deg": -0.187,
+      "drift_xy_m": 0.0071,
+      "drift_z_m": -0.0005,
+      "elapsed_s": 0.5
+    },
+    {
+      "cycle": 14,
+      "choice": "roll_lf",
+      "rationale": "err=+118.20deg -> roll_lf (measured help +3.39deg/use)",
+      "err_before_deg": 118.196,
+      "err_after_deg": 118.939,
+      "measured_delta_deg": 0.743,
+      "drift_xy_m": 0.0066,
+      "drift_z_m": -0.0005,
+      "elapsed_s": 0.55
+    },
+    {
+      "cycle": 15,
+      "choice": "regrasp",
+      "rationale": "no gait helps at err=+118.94deg; reset contact mode",
+      "err_before_deg": 118.939,
+      "err_after_deg": 119.203,
+      "measured_delta_deg": 0.264,
+      "drift_xy_m": 0.0089,
+      "drift_z_m": -0.0,
+      "elapsed_s": 0.6
+    },
+    {
+      "cycle": 16,
+      "choice": "regrasp",
+      "rationale": "no gait helps at err=+119.20deg; reset contact mode",
+      "err_before_deg": 119.203,
+      "err_after_deg": 117.907,
+      "measured_delta_deg": -1.296,
+      "drift_xy_m": 0.0096,
+      "drift_z_m": 0.0006,
+      "elapsed_s": 0.64
+    },
+    {
+      "cycle": 17,
+      "choice": "roll_ccw",
+      "rationale": "regrasp twice without recovery; least-harmful roll_ccw",
+      "err_before_deg": 117.907,
+      "err_after_deg": 121.333,
+      "measured_delta_deg": 3.426,
+      "drift_xy_m": 0.0059,
+      "drift_z_m": -0.0011,
+      "elapsed_s": 0.71
+    },
+    {
+      "cycle": 18,
+      "choice": "regrasp",
+      "rationale": "no gait helps at err=+121.33deg; reset contact mode",
+      "err_before_deg": 121.333,
+      "err_after_deg": 121.194,
+      "measured_delta_deg": -0.139,
+      "drift_xy_m": 0.0076,
+      "drift_z_m": -0.0005,
+      "elapsed_s": 0.76
+    },
+    {
+      "cycle": 19,
+      "choice": "regrasp",
+      "rationale": "no gait helps at err=+121.19deg; reset contact mode",
+      "err_before_deg": 121.194,
+      "err_after_deg": 122.748,
+      "measured_delta_deg": 1.554,
+      "drift_xy_m": 0.0052,
+      "drift_z_m": 0.0007,
+      "elapsed_s": 0.8
+    },
+    {
+      "cycle": 20,
+      "choice": "roll_cw",
+      "rationale": "regrasp twice without recovery; least-harmful roll_cw",
+      "err_before_deg": 122.748,
+      "err_after_deg": 122.074,
+      "measured_delta_deg": -0.674,
+      "drift_xy_m": 0.007,
+      "drift_z_m": 0.0006,
+      "elapsed_s": 0.87
+    },
+    {
+      "cycle": 21,
+      "choice": "roll_cw",
+      "rationale": "err=+122.07deg -> roll_cw (measured help +0.65deg/use)",
+      "err_before_deg": 122.074,
+      "err_after_deg": 121.22,
+      "measured_delta_deg": -0.854,
+      "drift_xy_m": 0.0081,
+      "drift_z_m": 0.0009,
+      "elapsed_s": 0.93
+    },
+    {
+      "cycle": 22,
+      "choice": "roll_cw",
+      "rationale": "err=+121.22deg -> roll_cw (measured help +0.76deg/use)",
+      "err_before_deg": 121.22,
+      "err_after_deg": 120.386,
+      "measured_delta_deg": -0.834,
+      "drift_xy_m": 0.0091,
+      "drift_z_m": 0.0012,
+      "elapsed_s": 1.0
+    },
+    {
+      "cycle": 23,
+      "choice": "roll_cw",
+      "rationale": "err=+120.39deg -> roll_cw (measured help +0.84deg/use)",
+      "err_before_deg": 120.386,
+      "err_after_deg": 119.65,
+      "measured_delta_deg": -0.736,
+      "drift_xy_m": 0.0104,
+      "drift_z_m": 0.0015,
+      "elapsed_s": 1.06
+    },
+    {
+      "cycle": 24,
+      "choice": "roll_cw",
+      "rationale": "err=+119.65deg -> roll_cw (measured help +0.78deg/use)",
+      "err_before_deg": 119.65,
+      "err_after_deg": 118.611,
+      "measured_delta_deg": -1.039,
+      "drift_xy_m": 0.0154,
+      "drift_z_m": 0.0024,
+      "elapsed_s": 1.12
+    }
+  ],
+  "summary": {
+    "outcome": "failure_max_cycles",
+    "n_cycles": 25,
+    "final_err_deg": 118.611,
+    "final_rot_dist_rad": 2.0761,
+    "final_drift_xy_m": 0.0154,
+    "wall_time_s": 1.12
+  }
+}

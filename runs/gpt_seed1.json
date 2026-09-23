@@ -1,0 +1,293 @@
+{
+  "meta": {
+    "policy": "gpt",
+    "seed": 1,
+    "max_cycles": 25,
+    "started_at": "2026-09-23T11:24:03"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "roll_ccw",
+      "rationale": "The block needs substantial positive yaw rotation, and zero drift indicates a stable grasp for the counter-clockwise rolling primitive.",
+      "err_before_deg": 75.763,
+      "err_after_deg": 73.002,
+      "measured_delta_deg": -2.761,
+      "drift_xy_m": 0.0041,
+      "drift_z_m": -0.0016,
+      "elapsed_s": 26.61
+    },
+    {
+      "cycle": 1,
+      "choice": "roll_lf",
+      "rationale": "The positive yaw error remains large and drift is small, so try the positive-yaw little-finger gait after roll_ccw produced only a small change with conflicting sign feedback.",
+      "err_before_deg": 73.002,
+      "err_after_deg": 85.012,
+      "measured_delta_deg": 12.01,
+      "drift_xy_m": 0.0088,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 33.43
+    },
+    {
+      "cycle": 2,
+      "choice": "roll_ccw",
+      "rationale": "Roll_ccw previously reduced the error while roll_lf increased it, so repeat roll_ccw with drift still modest.",
+      "err_before_deg": 85.012,
+      "err_after_deg": 77.863,
+      "measured_delta_deg": -7.149,
+      "drift_xy_m": 0.009,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 37.49
+    },
+    {
+      "cycle": 3,
+      "choice": "roll_ccw",
+      "rationale": "roll_ccw has consistently reduced the positive rotation error, most recently by 7.149 degrees, while drift remains modest and nearly unchanged.",
+      "err_before_deg": 77.863,
+      "err_after_deg": 77.711,
+      "measured_delta_deg": -0.152,
+      "drift_xy_m": 0.009,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 46.59
+    },
+    {
+      "cycle": 4,
+      "choice": "roll_wr",
+      "rationale": "The previously effective roll_ccw has stalled, so use a wrist rock to escape the contact-mode pocket while monitoring the modest existing drift.",
+      "err_before_deg": 77.711,
+      "err_after_deg": 68.748,
+      "measured_delta_deg": -8.963,
+      "drift_xy_m": 0.0127,
+      "drift_z_m": -0.0032,
+      "elapsed_s": 50.8
+    },
+    {
+      "cycle": 5,
+      "choice": "roll_wr",
+      "rationale": "Repeat the wrist rock because it reduced the error by 8.963 degrees last cycle, while drift remains modest and the block has not dropped.",
+      "err_before_deg": 68.748,
+      "err_after_deg": 68.582,
+      "measured_delta_deg": -0.166,
+      "drift_xy_m": 0.0128,
+      "drift_z_m": -0.0031,
+      "elapsed_s": 55.14
+    },
+    {
+      "cycle": 6,
+      "choice": "roll_ccw",
+      "rationale": "Return to roll_ccw after the wrist contact adjustment, since it previously reduced the positive error and the repeated wrist action has now stalled.",
+      "err_before_deg": 68.582,
+      "err_after_deg": 77.74,
+      "measured_delta_deg": 9.158,
+      "drift_xy_m": 0.009,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 59.49
+    },
+    {
+      "cycle": 7,
+      "choice": "roll_lf",
+      "rationale": "Try the alternative positive-yaw rolling gait because roll_ccw and roll_wr have stalled or reversed progress while drift remains modest.",
+      "err_before_deg": 77.74,
+      "err_after_deg": 81.687,
+      "measured_delta_deg": 3.947,
+      "drift_xy_m": 0.0097,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 68.2
+    },
+    {
+      "cycle": 8,
+      "choice": "roll_wr",
+      "rationale": "Wrist rocking previously reduced the error substantially, so retry it after the intervening finger motions changed the contact configuration, while drift remains modest.",
+      "err_before_deg": 81.687,
+      "err_after_deg": 72.776,
+      "measured_delta_deg": -8.911,
+      "drift_xy_m": 0.012,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 72.89
+    },
+    {
+      "cycle": 9,
+      "choice": "roll_wr",
+      "rationale": "Wrist rocking just reduced the error by 8.911 degrees with modest drift, so repeat it to continue toward the goal.",
+      "err_before_deg": 72.776,
+      "err_after_deg": 71.584,
+      "measured_delta_deg": -1.192,
+      "drift_xy_m": 0.012,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 82.34
+    },
+    {
+      "cycle": 10,
+      "choice": "roll_cw",
+      "rationale": "Recent roll_ccw and roll_lf increased the error while roll_wr's improvement is fading, so try roll_cw to reduce the remaining error with drift still modest.",
+      "err_before_deg": 71.584,
+      "err_after_deg": 80.55,
+      "measured_delta_deg": 8.966,
+      "drift_xy_m": 0.0087,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 91.86
+    },
+    {
+      "cycle": 11,
+      "choice": "roll_wr",
+      "rationale": "Wrist rolling is the only recent primitive that reduced the observed error, and current drift remains modest enough to continue.",
+      "err_before_deg": 80.55,
+      "err_after_deg": 72.114,
+      "measured_delta_deg": -8.436,
+      "drift_xy_m": 0.012,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 96.28
+    },
+    {
+      "cycle": 12,
+      "choice": "roll_ccw",
+      "rationale": "The error remains strongly positive, wrist rolling has shown diminishing gains on consecutive uses, and roll_ccw targets the required positive yaw with modest current drift.",
+      "err_before_deg": 72.114,
+      "err_after_deg": 77.895,
+      "measured_delta_deg": 5.781,
+      "drift_xy_m": 0.009,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 106.5
+    },
+    {
+      "cycle": 13,
+      "choice": "roll_lf",
+      "rationale": "The grasp drift is modest, and the little-finger gait offers sustained positive yaw after wrist rolling stalled and both standard rolls increased the error.",
+      "err_before_deg": 77.895,
+      "err_after_deg": 81.704,
+      "measured_delta_deg": 3.809,
+      "drift_xy_m": 0.0097,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 111.26
+    },
+    {
+      "cycle": 14,
+      "choice": "roll_wr",
+      "rationale": "Wrist rocking reduced the observed rotation error on both recent uses, while other tested rolls increased it, and current drift remains modest.",
+      "err_before_deg": 81.704,
+      "err_after_deg": 73.006,
+      "measured_delta_deg": -8.698,
+      "drift_xy_m": 0.012,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 115.45
+    },
+    {
+      "cycle": 15,
+      "choice": "roll_wr",
+      "rationale": "Recent roll_wr actions consistently reduced the remaining error by about 8.5 degrees while drift stayed modest, making it the best-supported next move.",
+      "err_before_deg": 73.006,
+      "err_after_deg": 71.969,
+      "measured_delta_deg": -1.037,
+      "drift_xy_m": 0.012,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 120.35
+    },
+    {
+      "cycle": 16,
+      "choice": "roll_th",
+      "rationale": "Wrist rolling is showing diminishing progress, so try the alternative thumb sweep to escape the contact pocket while drift remains modest.",
+      "err_before_deg": 71.969,
+      "err_after_deg": 77.656,
+      "measured_delta_deg": 5.687,
+      "drift_xy_m": 0.0096,
+      "drift_z_m": -0.0037,
+      "elapsed_s": 125.31
+    },
+    {
+      "cycle": 17,
+      "choice": "roll_wr",
+      "rationale": "Wrist rocking reduced the observed error on both recent uses, while other tested gaits increased it, and current drift remains modest.",
+      "err_before_deg": 77.656,
+      "err_after_deg": 71.653,
+      "measured_delta_deg": -6.003,
+      "drift_xy_m": 0.012,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 130.17
+    },
+    {
+      "cycle": 18,
+      "choice": "roll_wr",
+      "rationale": "Wrist rocking consistently reduced the observed error, including 6.003 degrees last cycle, while drift remains stable and the block is not dropped.",
+      "err_before_deg": 71.653,
+      "err_after_deg": 71.618,
+      "measured_delta_deg": -0.035,
+      "drift_xy_m": 0.012,
+      "drift_z_m": -0.0036,
+      "elapsed_s": 134.68
+    },
+    {
+      "cycle": 19,
+      "choice": "roll_ccw",
+      "rationale": "Positive yaw is needed, drift is modest, and the wrist gait has stalled, so switch to the repeatable counter-clockwise rolling gait.",
+      "err_before_deg": 71.618,
+      "err_after_deg": 77.877,
+      "measured_delta_deg": 6.259,
+      "drift_xy_m": 0.009,
+      "drift_z_m": -0.0038,
+      "elapsed_s": 139.45
+    },
+    {
+      "cycle": 20,
+      "choice": "roll_cw",
+      "rationale": "Recent roll_ccw increased the error and wrist rolls stalled, so try the opposite rolling gait while drift remains modest.",
+      "err_before_deg": 77.877,
+      "err_after_deg": 75.777,
+      "measured_delta_deg": -2.1,
+      "drift_xy_m": 0.0078,
+      "drift_z_m": -0.0035,
+      "elapsed_s": 144.16
+    },
+    {
+      "cycle": 21,
+      "choice": "roll_cw",
+      "rationale": "Repeat roll_cw because it most recently reduced the observed error by 2.1 degrees while decreasing drift, whereas roll_ccw increased the error.",
+      "err_before_deg": 75.777,
+      "err_after_deg": 75.849,
+      "measured_delta_deg": 0.072,
+      "drift_xy_m": 0.0079,
+      "drift_z_m": -0.0035,
+      "elapsed_s": 148.93
+    },
+    {
+      "cycle": 22,
+      "choice": "roll_lf",
+      "rationale": "Recent wrist and forefinger rolls have stalled, so try the alternative little-finger gait to reduce the large yaw error while drift remains modest.",
+      "err_before_deg": 75.849,
+      "err_after_deg": 81.779,
+      "measured_delta_deg": 5.93,
+      "drift_xy_m": 0.0097,
+      "drift_z_m": -0.0037,
+      "elapsed_s": 152.9
+    },
+    {
+      "cycle": 23,
+      "choice": "roll_th",
+      "rationale": "Recent error changes show roll_ccw and roll_lf moving away from the goal while roll_cw and roll_wr stall, so try the alternative thumb sweep with drift still modest.",
+      "err_before_deg": 81.779,
+      "err_after_deg": 78.257,
+      "measured_delta_deg": -3.522,
+      "drift_xy_m": 0.0095,
+      "drift_z_m": -0.0037,
+      "elapsed_s": 158.77
+    },
+    {
+      "cycle": 24,
+      "choice": "roll_th",
+      "rationale": "Repeat the thumb sweep because it most recently reduced the error by 3.522 degrees without increasing lateral drift, while the other recent gaits stalled or increased the error.",
+      "err_before_deg": 78.257,
+      "err_after_deg": 77.563,
+      "measured_delta_deg": -0.694,
+      "drift_xy_m": 0.0096,
+      "drift_z_m": -0.0037,
+      "elapsed_s": 164.43
+    }
+  ],
+  "summary": {
+    "outcome": "failure_max_cycles",
+    "n_cycles": 25,
+    "final_err_deg": 77.563,
+    "final_rot_dist_rad": 1.365,
+    "final_drift_xy_m": 0.0096,
+    "wall_time_s": 164.43
+  }
+}

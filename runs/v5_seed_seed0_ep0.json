@@ -1,0 +1,161 @@
+{
+  "meta": {
+    "policy": "baseline",
+    "seed": 0,
+    "max_cycles": 25,
+    "started_at": "2026-09-23T01:04:50"
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "choice": "roll_ccw",
+      "rationale": "err=-61.16deg -> explore roll_ccw",
+      "err_before_deg": -61.158,
+      "err_after_deg": -54.935,
+      "measured_delta_deg": 6.223,
+      "drift_xy_m": 0.0035,
+      "drift_z_m": -0.0019,
+      "elapsed_s": 0.03
+    },
+    {
+      "cycle": 1,
+      "choice": "roll_cw",
+      "rationale": "err=-54.94deg -> explore roll_cw",
+      "err_before_deg": -54.935,
+      "err_after_deg": -53.22,
+      "measured_delta_deg": 1.715,
+      "drift_xy_m": 0.0073,
+      "drift_z_m": -0.0013,
+      "elapsed_s": 0.05
+    },
+    {
+      "cycle": 2,
+      "choice": "roll_lf",
+      "rationale": "err=-53.22deg -> explore roll_lf",
+      "err_before_deg": -53.22,
+      "err_after_deg": -49.947,
+      "measured_delta_deg": 3.273,
+      "drift_xy_m": 0.0087,
+      "drift_z_m": -0.0024,
+      "elapsed_s": 0.08
+    },
+    {
+      "cycle": 3,
+      "choice": "roll_th",
+      "rationale": "err=-49.95deg -> explore roll_th",
+      "err_before_deg": -49.947,
+      "err_after_deg": -44.934,
+      "measured_delta_deg": 5.013,
+      "drift_xy_m": 0.0114,
+      "drift_z_m": -0.0033,
+      "elapsed_s": 0.11
+    },
+    {
+      "cycle": 4,
+      "choice": "roll_ccw",
+      "rationale": "err=-44.93deg -> second trial of roll_ccw (first help +6.22deg)",
+      "err_before_deg": -44.934,
+      "err_after_deg": -41.453,
+      "measured_delta_deg": 3.481,
+      "drift_xy_m": 0.0154,
+      "drift_z_m": -0.0027,
+      "elapsed_s": 0.14
+    },
+    {
+      "cycle": 5,
+      "choice": "roll_ccw",
+      "rationale": "err=-41.45deg -> roll_ccw (measured help +4.85deg/use)",
+      "err_before_deg": -41.453,
+      "err_after_deg": -38.633,
+      "measured_delta_deg": 2.82,
+      "drift_xy_m": 0.0203,
+      "drift_z_m": -0.0018,
+      "elapsed_s": 0.16
+    },
+    {
+      "cycle": 6,
+      "choice": "roll_ccw",
+      "rationale": "err=-38.63deg -> roll_ccw (measured help +3.15deg/use)",
+      "err_before_deg": -38.633,
+      "err_after_deg": -38.741,
+      "measured_delta_deg": -0.108,
+      "drift_xy_m": 0.0231,
+      "drift_z_m": -0.0013,
+      "elapsed_s": 0.19
+    },
+    {
+      "cycle": 7,
+      "choice": "roll_ccw",
+      "rationale": "err=-38.74deg -> roll_ccw (measured help +1.36deg/use)",
+      "err_before_deg": -38.741,
+      "err_after_deg": -39.304,
+      "measured_delta_deg": -0.563,
+      "drift_xy_m": 0.0241,
+      "drift_z_m": -0.0011,
+      "elapsed_s": 0.21
+    },
+    {
+      "cycle": 8,
+      "choice": "roll_th",
+      "rationale": "err=-39.30deg -> second trial of roll_th (first help +5.01deg)",
+      "err_before_deg": -39.304,
+      "err_after_deg": -39.491,
+      "measured_delta_deg": -0.187,
+      "drift_xy_m": 0.0227,
+      "drift_z_m": -0.0013,
+      "elapsed_s": 0.24
+    },
+    {
+      "cycle": 9,
+      "choice": "roll_th",
+      "rationale": "err=-39.49deg -> roll_th (measured help +2.41deg/use)",
+      "err_before_deg": -39.491,
+      "err_after_deg": -39.706,
+      "measured_delta_deg": -0.215,
+      "drift_xy_m": 0.0212,
+      "drift_z_m": -0.0015,
+      "elapsed_s": 0.27
+    },
+    {
+      "cycle": 10,
+      "choice": "roll_lf",
+      "rationale": "err=-39.71deg -> second trial of roll_lf (first help +3.27deg)",
+      "err_before_deg": -39.706,
+      "err_after_deg": -46.497,
+      "measured_delta_deg": -6.791,
+      "drift_xy_m": 0.0175,
+      "drift_z_m": -0.0024,
+      "elapsed_s": 0.29
+    },
+    {
+      "cycle": 11,
+      "choice": "roll_cw",
+      "rationale": "err=-46.50deg -> second trial of roll_cw (first help +1.72deg)",
+      "err_before_deg": -46.497,
+      "err_after_deg": -48.372,
+      "measured_delta_deg": -1.875,
+      "drift_xy_m": 0.0233,
+      "drift_z_m": -0.0011,
+      "elapsed_s": 0.32
+    },
+    {
+      "cycle": 12,
+      "choice": "regrasp",
+      "rationale": "no gait helps at err=-48.37deg; reset contact mode",
+      "err_before_deg": -48.372,
+      "err_after_deg": -45.658,
+      "measured_delta_deg": 2.714,
+      "drift_xy_m": 0.0257,
+      "drift_z_m": 0.0008,
+      "elapsed_s": 0.34
+    }
+  ],
+  "summary": {
+    "outcome": "failure_dropped",
+    "n_cycles": 13,
+    "final_err_deg": -45.658,
+    "final_rot_dist_rad": 0.812,
+    "final_drift_xy_m": 0.0257,
+    "wall_time_s": 0.34
+  }
+}
