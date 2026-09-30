@@ -61,6 +61,20 @@ def rotation_distance_rad(q_ach: np.ndarray, q_des: np.ndarray) -> float:
     return 2.0 * math.acos(max(-1.0, min(1.0, abs(q_rel[0]))))
 
 
+def rotation_error_vector_deg(q_ach: np.ndarray, q_des: np.ndarray) -> np.ndarray:
+    """Shortest achieved-minus-desired axis-angle rotation vector in degrees."""
+    q_rel = quat_normalize(
+        quat_mul(quat_normalize(q_ach), quat_conjugate(quat_normalize(q_des))))
+    # q and -q encode the same orientation. Choose the shortest representation.
+    if q_rel[0] < 0.0:
+        q_rel = -q_rel
+    vector_norm = float(np.linalg.norm(q_rel[1:4]))
+    if vector_norm < 1e-12:
+        return np.zeros(3, dtype=np.float64)
+    angle = 2.0 * math.atan2(vector_norm, max(0.0, float(q_rel[0])))
+    return np.degrees(q_rel[1:4] * (angle / vector_norm))
+
+
 def block_pose(env) -> tuple[np.ndarray, np.ndarray]:
     """Return (pos[3], quat[4]) of the manipulated block.
 
@@ -87,6 +101,8 @@ def pack_observation(
 
     err_rad = signed_z_error_rad(q_ach, q_des)
     d_rot = rotation_distance_rad(q_ach, q_des)
+    rotation_error = rotation_error_vector_deg(q_ach, q_des)
+    tilt_error = float(np.linalg.norm(rotation_error[:2]))
     drift = block_pos - np.asarray(initial_block_pos, dtype=np.float64)
     drift_xy = float(np.linalg.norm(drift[:2]))
 
@@ -94,6 +110,8 @@ def pack_observation(
         "cycle": cycle,
         "err_deg": round(math.degrees(err_rad), 3),
         "rot_dist_rad": round(d_rot, 4),
+        "rotation_error_xyz_deg": [round(float(v), 3) for v in rotation_error],
+        "tilt_error_deg": round(tilt_error, 3),
         "success": bool(d_rot < ROTATION_THRESHOLD_RAD),
         "block_pos": [round(float(v), 4) for v in block_pos],
         "drift_xy_m": round(drift_xy, 4),

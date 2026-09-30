@@ -50,6 +50,8 @@ def run_episode(
             decision = policy.choose(obs_pack, history)
         choice = decision["choice"]
         err_before = obs_pack["err_deg"]
+        rot_dist_before = obs_pack["rot_dist_rad"]
+        tilt_before = obs_pack["tilt_error_deg"]
 
         if choice == "finish":
             final_obs = obs_pack
@@ -57,8 +59,17 @@ def run_episode(
             recorder.log_cycle({
                 "cycle": cycle, "choice": "finish", "rationale": decision["rationale"],
                 "selection_mode": decision.get("selection_mode"),
+                "recommended_phase": decision.get("recommended_phase"),
+                "model_reported_phase": decision.get("model_reported_phase"),
+                "follows_rules": decision.get("follows_rules"),
                 "err_before_deg": err_before, "err_after_deg": err_before,
-                "measured_delta_deg": 0.0, "drift_xy_m": obs_pack["drift_xy_m"],
+                "measured_delta_deg": 0.0,
+                "rot_dist_before_rad": rot_dist_before,
+                "rot_dist_after_rad": rot_dist_before,
+                "rot_dist_gain_rad": 0.0,
+                "tilt_before_deg": tilt_before, "tilt_after_deg": tilt_before,
+                "tilt_gain_deg": 0.0,
+                "drift_xy_m": obs_pack["drift_xy_m"],
                 "elapsed_s": round(time.time() - t0, 2),
             })
             if verbose:
@@ -77,14 +88,25 @@ def run_episode(
 
         after = pack_observation(obs, initial_pos, cycle)
         delta = after["err_deg"] - err_before  # signed change of the error angle
+        rot_dist_gain = rot_dist_before - after["rot_dist_rad"]
+        tilt_gain = tilt_before - after["tilt_error_deg"]
         record = {
             "cycle": cycle,
             "choice": choice,
             "rationale": decision["rationale"],
             "selection_mode": decision.get("selection_mode"),
+            "recommended_phase": decision.get("recommended_phase"),
+            "model_reported_phase": decision.get("model_reported_phase"),
+            "follows_rules": decision.get("follows_rules"),
             "err_before_deg": err_before,
             "err_after_deg": after["err_deg"],
             "measured_delta_deg": round(delta, 3),
+            "rot_dist_before_rad": rot_dist_before,
+            "rot_dist_after_rad": after["rot_dist_rad"],
+            "rot_dist_gain_rad": round(rot_dist_gain, 4),
+            "tilt_before_deg": tilt_before,
+            "tilt_after_deg": after["tilt_error_deg"],
+            "tilt_gain_deg": round(tilt_gain, 3),
             "drift_xy_m": after["drift_xy_m"],
             "drift_z_m": after["drift_z_m"],
             "elapsed_s": round(time.time() - t0, 2),
@@ -93,13 +115,23 @@ def run_episode(
         history.append({
             "cycle": cycle, "choice": choice,
             "selection_mode": decision.get("selection_mode"),
+            "recommended_phase": decision.get("recommended_phase"),
+            "follows_rules": decision.get("follows_rules"),
             "err_before_deg": err_before,
             "err_deg": after["err_deg"], "measured_delta_deg": record["measured_delta_deg"],
+            "rot_dist_before_rad": rot_dist_before,
+            "rot_dist_rad": after["rot_dist_rad"],
+            "rot_dist_gain_rad": record["rot_dist_gain_rad"],
+            "tilt_before_deg": tilt_before,
+            "tilt_error_deg": after["tilt_error_deg"],
+            "tilt_gain_deg": record["tilt_gain_deg"],
             "drift_xy_m": after["drift_xy_m"],
         })
         if verbose:
             print(f"[seed {seed}] cycle {cycle}: {choice:9s} "
                   f"err {err_before:+.2f} -> {after['err_deg']:+.2f}deg "
+                  f"rot_dist={after['rot_dist_rad']:.3f}rad "
+                  f"tilt={after['tilt_error_deg']:.1f}deg "
                   f"(drift_xy={after['drift_xy_m'] * 100:.2f}cm)")
 
         final_obs = after
