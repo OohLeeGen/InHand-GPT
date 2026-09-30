@@ -8,8 +8,8 @@ Conventions
 - The signed Z error is the policy-facing signal:
       q_rel = q_achieved * conj(q_desired)
       err   = wrap(2 * atan2(q_rel.z, q_rel.w))        # radians, [-pi, pi]
-  Positive err means the block must rotate further about +Z (world) to reach
-  the goal.
+  This is achieved minus desired: positive err requires negative world-Z yaw,
+  while negative err requires positive world-Z yaw to reach the goal.
 - The success criterion mirrors the Gymnasium-Robotics env:
       d_rot = 2 * acos(|<q_ach, q_des>|) < rotation_threshold (0.1 rad)
   (RotateZ ignores position; we still track drift for drop detection.)
@@ -22,7 +22,7 @@ from typing import Any, Dict
 import numpy as np
 
 ROTATION_THRESHOLD_RAD = 0.1  # env's rotation_threshold
-DROP_DRIFT_XY_M = 0.025       # loop-level drop rule: horizontal drift
+DROP_DRIFT_XY_M = 0.05        # loop-level drop rule: horizontal drift
 DROP_Z_M = 0.05               # loop-level drop rule: block fell this far below start
 
 

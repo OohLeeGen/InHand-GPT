@@ -124,11 +124,13 @@ Each cycle you receive a structured observation and must pick exactly ONE
 motion primitive from the menu (or "finish").
 
 Observation semantics:
-- err_deg: signed rotation error about +Z in degrees. Positive means the block
-  must rotate further about +Z. Success requires |err| < 5.73 deg (0.1 rad).
+- err_deg: signed achieved-minus-desired rotation error about +Z in degrees.
+  Positive error requires negative yaw; negative error requires positive yaw.
+  Success requires |err| < 5.73 deg (0.1 rad).
 - rot_dist_rad: unsigned geodesic rotation distance to the goal (rad).
-- drift_xy_m / drift_z_m: block-center displacement from episode start. Large
-  drift means the grasp is unstable; prefer "hold" to re-stabilize.
+- drift_xy_m / drift_z_m: block-center displacement from episode start.
+  Horizontal drift above 0.05 m or vertical drop below -0.05 m ends the
+  episode as dropped. Large drift means the grasp is unstable.
 - last_action / last_delta_deg: what was executed last cycle and the measured
   signed yaw change it produced (deg). Use this feedback to adapt.
 
@@ -138,8 +140,24 @@ Current observation (JSON):
 Recent history (oldest first, JSON):
 {history}
 
+Recommended mode (advisory only; all menu actions remain legal): {selection_mode}
+
+Episode-long measured action statistics (JSON):
+{action_stats}
+
+Untried actions in the active menu (JSON):
+{untried_actions}
+
 Primitive menu (JSON):
 {menu}
+
+Important:
+- All listed actions are legal. Treat category, use_when, and avoid_when as
+  guidance rather than guaranteed effects or hard constraints.
+- Positive/negative joint directions in descriptions are actuator-coordinate
+  directions only; they do NOT predict block yaw direction.
+- Trust measured episode statistics over action wording. Avoid consecutive
+  recovery actions unless the first produced a measured position improvement.
 
 Reply with ONLY a JSON object, no markdown, no extra text:
 {{"choice": "<primitive name or 'finish'>", "rationale": "<one sentence>"}}
@@ -147,16 +165,192 @@ Reply with ONLY a JSON object, no markdown, no extra text:
 
 
 def build_messages(obs: Dict[str, Any], history: List[Dict[str, Any]],
-                   menu: List[Dict[str, Any]], model: str) -> List[Dict[str, str]]:
+                   menu: List[Dict[str, Any]], model: str,
+                   selection_mode: str = "normal_rotation",
+                   action_stats: Dict[str, Any] | None = None,
+                   untried_actions: List[str] | None = None) -> List[Dict[str, str]]:
     prompt = PROMPT_TEMPLATE.format(
         observation=json.dumps(obs, ensure_ascii=False),
         history=json.dumps(history[-5:], ensure_ascii=False),
+        selection_mode=selection_mode,
+        action_stats=json.dumps(action_stats or {}, ensure_ascii=False),
+        untried_actions=json.dumps(untried_actions or [], ensure_ascii=False),
         menu=json.dumps(menu, ensure_ascii=False),
     )
     return [
         {"role": "system", "content": "You are a careful robot control policy. Always answer with strict JSON."},
         {"role": "user", "content": prompt},
     ]
+
+
+def anonymize_action_interface(
+        history: List[Dict[str, Any]], menu: List[Dict[str, Any]]
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, str]]:
+    """Replace internal primitive names with stable, episode-local aliases."""
+    alias_by_name = {
+        item["name"]: f"action_{index:02d}"
+        for index, item in enumerate(menu, start=1)
+    }
+    name_by_alias = {alias: name for name, alias in alias_by_name.items()}
+    prompt_menu = [
+        {**item, "name": alias_by_name[item["name"]]}
+        for item in menu
+    ]
+    prompt_history = []
+    for item in history:
+        prompt_item = dict(item)
+        choice = prompt_item.get("choice")
+        if choice in alias_by_name:
+            prompt_item["choice"] = alias_by_name[choice]
+        prompt_history.append(prompt_item)
+    return prompt_history, prompt_menu, name_by_alias
+
+
+MICRO_ACTIONS = {
+    "micro_forefinger_pulse", "micro_middle_finger_pulse",
+    "micro_ring_finger_pulse", "micro_little_finger_pulse",
+    "micro_thumb_index_pinch", "micro_thumb_middle_pinch",
+    "micro_thumb_sweep", "micro_finger_walk",
+}
+LATERAL_SWEEP_ACTIONS = {
+    "ring_lateral_sweep_a", "ring_lateral_sweep_b",
+    "ring_lateral_sweep_b_strong", "ring_lateral_ratchet_b",
+}
+NORMAL_ACTIONS = {
+    "hold", "roll_cw", "roll_ccw", "roll_lf", "roll_th", "roll_wr",
+    "nudge_cw", "nudge_ccw",
+} | MICRO_ACTIONS | LATERAL_SWEEP_ACTIONS
+CONTACT_RECOVERY_ACTIONS = {
+    "regrasp", "forefinger_regrasp", "middle_finger_regrasp",
+    "ring_finger_regrasp", "little_finger_regrasp", "thumb_regrasp",
+    "multi_finger_dither",
+}
+WRIST_RECOVERY_ACTIONS = {
+    "wrist_lower_reseat", "wrist_raise_reseat",
+    "wrist_three_finger_regrasp", "recenter_palmward",
+    "recenter_fingertips", "recenter_forefinger_side",
+    "recenter_little_side",
+}
+RECOVERY_ACTIONS = CONTACT_RECOVERY_ACTIONS | WRIST_RECOVERY_ACTIONS
+
+
+def action_guidance(name: str) -> Dict[str, str]:
+    """Advisory conditions shown to GPT; never used as a hard filter."""
+    if name == "hold":
+        return {
+            "category": "stabilization",
+            "use_when": "immediately after an abrupt motion or unstable drift",
+            "avoid_when": "large error remains and another action is improving it",
+        }
+    if name in {"nudge_cw", "nudge_ccw"}:
+        return {
+            "category": "fine_rotation",
+            "use_when": "rotation error is small or a coarse action overshoots",
+            "avoid_when": "large error remains and a coarse action is effective",
+        }
+    if name == "roll_lf":
+        return {
+            "category": "alternate_contact_rotation",
+            "use_when": "a different contact pattern is needed and its most recent measured gain is positive",
+            "avoid_when": "it ran twice consecutively or its recent measured gain is below 0.5 deg",
+        }
+    if name in LATERAL_SWEEP_ACTIONS:
+        return {
+            "category": "contact_shift",
+            "use_when": "repeated ring/thumb rotation gains have decayed while object drift remains stable",
+            "avoid_when": "the object is positionally unstable or the same sweep direction recently worsened contact",
+        }
+    if name in MICRO_ACTIONS:
+        return {
+            "category": "small_object_micro",
+            "use_when": "the object/contact scale is small, a coarse motion is excessive, or a fine local contact adjustment is needed",
+            "avoid_when": "large error remains and a coarse action is producing stable progress",
+        }
+    if name in NORMAL_ACTIONS:
+        return {
+            "category": "coarse_rotation",
+            "use_when": "contact is stable and rotation error remains large",
+            "avoid_when": "its recent measured gain is below 0.5 deg repeatedly",
+        }
+    if name in CONTACT_RECOVERY_ACTIONS:
+        return {
+            "category": "contact_recovery",
+            "use_when": "at least two recent rotation actions stalled or worsened",
+            "avoid_when": "a rotation action is still improving or recovery just ran",
+        }
+    return {
+        "category": "position_recovery",
+        "use_when": "drift exceeds 0.02 m and rotation recently stalled, or contact recovery failed",
+        "avoid_when": "drift is low, rotation is improving, or its measured position gain is negative",
+    }
+
+
+def add_action_guidance(
+        prompt_menu: List[Dict[str, Any]], name_by_alias: Dict[str, str]
+) -> List[Dict[str, Any]]:
+    return [
+        {**item, **action_guidance(name_by_alias[item["name"]])}
+        for item in prompt_menu
+    ]
+
+
+def measured_gain(item: Dict[str, Any]) -> float:
+    """Positive when the action reduced absolute rotation error."""
+    before = float(item["err_before_deg"])
+    after = float(item.get("err_deg", item.get("err_after_deg", before)))
+    return abs(before) - abs(after)
+
+
+def select_action_mode(history: List[Dict[str, Any]]) -> tuple[str, set[str]]:
+    """Gate recovery menus using three consecutive low-progress cycles."""
+    if not history or history[-1].get("choice") in RECOVERY_ACTIONS:
+        return "normal_rotation", NORMAL_ACTIONS
+    if len(history) < 3 or not all(
+            item.get("choice") in NORMAL_ACTIONS and measured_gain(item) < 0.5
+            for item in history[-3:]):
+        return "normal_rotation", NORMAL_ACTIONS
+
+    last_recovery = next(
+        (item.get("choice") for item in reversed(history)
+         if item.get("choice") in RECOVERY_ACTIONS),
+        None,
+    )
+    if last_recovery in CONTACT_RECOVERY_ACTIONS:
+        return "wrist_recovery", WRIST_RECOVERY_ACTIONS
+    return "contact_recovery", CONTACT_RECOVERY_ACTIONS
+
+
+def build_action_stats(history: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Summarize all measured action outcomes in the current episode."""
+    grouped: Dict[str, List[tuple[Dict[str, Any], float]]] = {}
+    previous_drift = 0.0
+    for item in history:
+        choice = item.get("choice")
+        current_drift = float(item.get("drift_xy_m", previous_drift))
+        position_gain = previous_drift - current_drift
+        if isinstance(choice, str):
+            grouped.setdefault(choice, []).append((item, position_gain))
+        previous_drift = current_drift
+
+    stats: Dict[str, Any] = {}
+    for choice, samples in grouped.items():
+        items = [sample[0] for sample in samples]
+        position_gains = [sample[1] for sample in samples]
+        gains = [measured_gain(item) for item in items]
+        deltas = [float(item.get("measured_delta_deg", 0.0)) for item in items]
+        stats[choice] = {
+            "uses": len(items),
+            "helpful_uses": sum(gain > 0.0 for gain in gains),
+            "mean_error_gain_deg": round(sum(gains) / len(gains), 3),
+            "mean_yaw_delta_deg": round(sum(deltas) / len(deltas), 3),
+            "last_error_gain_deg": round(gains[-1], 3),
+            "helpful_position_uses": sum(gain > 0.0 for gain in position_gains),
+            "mean_position_gain_m": round(
+                sum(position_gains) / len(position_gains), 4),
+            "last_position_gain_m": round(position_gains[-1], 4),
+            "last_drift_xy_m": items[-1].get("drift_xy_m"),
+        }
+    return stats
 
 
 def parse_gpt_response(content: str, valid_choices: List[str]) -> Dict[str, str]:
@@ -196,7 +390,7 @@ class GPTPolicy(Policy):
 
     name = "gpt"
 
-    def __init__(self, dry_run: bool = False, timeout_s: float = 60.0,
+    def __init__(self, dry_run: bool = False, timeout_s: float = 300.0,
                  deadband_deg: float = 3.0):
         self.api_base = os.environ.get(ENV_API_BASE, DEFAULT_API_BASE).rstrip("/")
         self.model = os.environ.get(ENV_MODEL, DEFAULT_MODEL)
@@ -216,21 +410,36 @@ class GPTPolicy(Policy):
 
     def choose(self, obs: Dict[str, Any], history: List[Dict[str, Any]],
                menu: List[Dict[str, Any]]) -> Dict[str, str]:
-        messages = build_messages(obs, history, menu, self.model)
+        prompt_history, prompt_menu, name_by_alias = anonymize_action_interface(
+            history, menu)
+        selection_mode, _ = select_action_mode(history)
+        prompt_menu = add_action_guidance(prompt_menu, name_by_alias)
+        action_stats = build_action_stats(prompt_history)
+        tried = set(action_stats)
+        untried_actions = [
+            item["name"] for item in prompt_menu if item["name"] not in tried
+        ]
+        messages = build_messages(
+            obs, prompt_history, prompt_menu, self.model,
+            selection_mode=selection_mode,
+            action_stats=action_stats,
+            untried_actions=untried_actions,
+        )
         if self.dry_run:
             print("=== GPT dry-run: request NOT sent. Full prompt follows ===")
             for m in messages:
                 print(f"--- [{m['role']}] ---")
                 print(m["content"])
             print("=== end of dry-run prompt ===")
-            return {"choice": "finish", "rationale": "dry-run: no request sent"}
+            return {"choice": "finish", "rationale": "dry-run: no request sent",
+                    "selection_mode": f"soft:{selection_mode}"}
 
         import httpx  # local import: baseline runs must not require httpx
 
         body = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.0,
+            "temperature": 1.0,
             "response_format": {"type": "json_object"},
         }
         headers = {"Authorization": f"Bearer {self.api_key}"}
@@ -244,7 +453,12 @@ class GPTPolicy(Policy):
             content = resp.json()["choices"][0]["message"]["content"]
         except Exception as e:
             raise PolicyError(f"unexpected GPT API payload: {e}") from e
-        return parse_gpt_response(content, self.valid_choices(menu))
+        decision = parse_gpt_response(
+            content, [item["name"] for item in prompt_menu] + ["finish"])
+        if decision["choice"] != "finish":
+            decision["choice"] = name_by_alias[decision["choice"]]
+        decision["selection_mode"] = f"soft:{selection_mode}"
+        return decision
 
 
 # --- offline self-test ---------------------------------------------------------

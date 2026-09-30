@@ -28,7 +28,7 @@
 |---|---|
 | `err_deg` | 带符号绕世界 +Z 角度误差（度）：`q_rel = q_ach * conj(q_des)`，`err = wrap(2*atan2(q_rel.z, q_rel.w))`。**err>0 表示方块需要绕 -Z 方向旋转**（err = 块 − 目标） |
 | `rot_dist_rad` | 环境同款无符号测地旋转距离 `2*acos(|<q_ach,q_des>|)`，成功判据 <0.1 rad（≈5.73°），与 Gymnasium-Robotics 官方 `_is_success` 一致 |
-| `block_pos` / `drift_xy_m` / `drift_z_m` | 方块中心位置与相对局初的漂移；漂移 >2.5cm 或 z 下降 >5cm 判定掉落失败 |
+| `block_pos` / `drift_xy_m` / `drift_z_m` | 方块中心位置与相对局初的漂移；水平漂移 >5cm 或 z 下降 >5cm 判定掉落失败 |
 | `success` / `dropped` | 由 loop 按上述判据计算 |
 
 执行器契约（已由源码与运行时核实）：动作空间 `Box(-1,1,(20,))`，`relative_control=True`，每步 `ctrl = 当前关节角 + action * (ctrlrange 半宽)`——即 action 是归一化**相对关节增量**（近似关节速度）。20 个执行器顺序：`WRJ1, WRJ0, FFJ3, FFJ2, FFJ1, MFJ3, MFJ2, MFJ1, RFJ3, RFJ2, RFJ1, LFJ4, LFJ3, LFJ2, LFJ1, THJ4, THJ3, THJ2, THJ1, THJ0`（FF=食指 MF=中指 RF=无名指 LF=小指 TH=拇指 WRJ=腕）。

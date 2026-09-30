@@ -56,6 +56,7 @@ def run_episode(
             outcome = "success" if obs_pack["success"] else "failure_max_cycles"
             recorder.log_cycle({
                 "cycle": cycle, "choice": "finish", "rationale": decision["rationale"],
+                "selection_mode": decision.get("selection_mode"),
                 "err_before_deg": err_before, "err_after_deg": err_before,
                 "measured_delta_deg": 0.0, "drift_xy_m": obs_pack["drift_xy_m"],
                 "elapsed_s": round(time.time() - t0, 2),
@@ -80,6 +81,7 @@ def run_episode(
             "cycle": cycle,
             "choice": choice,
             "rationale": decision["rationale"],
+            "selection_mode": decision.get("selection_mode"),
             "err_before_deg": err_before,
             "err_after_deg": after["err_deg"],
             "measured_delta_deg": round(delta, 3),
@@ -90,6 +92,7 @@ def run_episode(
         recorder.log_cycle(record)
         history.append({
             "cycle": cycle, "choice": choice,
+            "selection_mode": decision.get("selection_mode"),
             "err_before_deg": err_before,
             "err_deg": after["err_deg"], "measured_delta_deg": record["measured_delta_deg"],
             "drift_xy_m": after["drift_xy_m"],

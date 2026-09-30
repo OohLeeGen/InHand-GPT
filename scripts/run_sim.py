@@ -100,6 +100,11 @@ def main() -> int:
                 vw.append(frame)
 
         recorder = Recorder(policy_name=policy.name, seed=seed, max_cycles=args.max_cycles)
+        if args.policy == "gpt":
+            recorder.meta["action_names_anonymized"] = True
+            recorder.meta["action_interface"] = "anonymous_name_with_kinematic_description"
+            recorder.meta["action_selection"] = "soft_guidance_v1"
+            recorder.meta["memory_mode"] = "recent5_plus_episode_rotation_and_position_stats"
         try:
             summary = run_episode(
                 env, policy, max_cycles=args.max_cycles, seed=seed,
