@@ -21,6 +21,9 @@ from inhand_gpt.policy import GPTPolicy, PolicyError, RuleBaselinePolicy
 from inhand_gpt.record import Recorder
 
 ENV_ID = "HandManipulateBlockRotateZ-v1"
+DEFAULT_OBJECT_SCALE = 1.07
+MIN_OBJECT_SCALE = 1.00
+MAX_OBJECT_SCALE = 1.15
 
 
 class VideoWriter:
@@ -53,12 +56,32 @@ class VideoWriter:
             self.writer.close()
 
 
-def build_env(seed: int, need_video: bool):
-    return gym.make(
+def object_scale_arg(value: str) -> float:
+    """Argparse validator that prevents accidentally oversized test objects."""
+    scale = float(value)
+    if not MIN_OBJECT_SCALE <= scale <= MAX_OBJECT_SCALE:
+        raise argparse.ArgumentTypeError(
+            f"object scale must be in [{MIN_OBJECT_SCALE:.2f}, "
+            f"{MAX_OBJECT_SCALE:.2f}]")
+    return scale
+
+
+def build_env(seed: int, need_video: bool,
+              object_scale: float = DEFAULT_OBJECT_SCALE):
+    env = gym.make(
         ENV_ID,
         render_mode="rgb_array" if need_video else None,
         max_episode_steps=2000,  # 25 cycles x ~30 steps must not hit the TimeLimit
     )
+    # The stock cube has 0.025 m half-extents (5 cm side length). Scaling the
+    # already-loaded model keeps the installed Gymnasium-Robotics XML intact.
+    # Mass scales with volume and inertia with length^5 at constant density.
+    model = env.unwrapped.model
+    model.geom("object").size[:] *= object_scale
+    model.geom("object_hidden").size[:] *= object_scale
+    model.body("object").mass[:] *= object_scale ** 3
+    model.body("object").inertia[:] *= object_scale ** 5
+    return env
 
 
 def main() -> int:
@@ -69,6 +92,9 @@ def main() -> int:
     ap.add_argument("--max-cycles", type=int, default=25)
     ap.add_argument("--deadband", type=float, default=5.0,
                     help="deg, baseline finish deadband (success threshold is 5.73deg)")
+    ap.add_argument(
+        "--object-scale", type=object_scale_arg, default=DEFAULT_OBJECT_SCALE,
+        help="cube linear scale, 1.00-1.15 (default: 1.07 = 5.35 cm side)")
     ap.add_argument("--video", type=str, default=None, help="mp4 path (episode 1 only)")
     ap.add_argument("--export", type=str, default=None, help="json export path")
     ap.add_argument("--dry-run", action="store_true",
@@ -90,7 +116,9 @@ def main() -> int:
         seed = args.seed + ep
         suffix = f"seed{seed}" + (f"_ep{ep}" if args.episodes > 1 else "")
         video_path = args.video if (args.video and ep == 0) else None
-        env = build_env(seed, need_video=video_path is not None)
+        env = build_env(
+            seed, need_video=video_path is not None,
+            object_scale=args.object_scale)
 
         vw = VideoWriter(video_path) if video_path else None
 
@@ -100,6 +128,17 @@ def main() -> int:
                 vw.append(frame)
 
         recorder = Recorder(policy_name=policy.name, seed=seed, max_cycles=args.max_cycles)
+        object_half_size = float(env.unwrapped.model.geom("object").size[0])
+        recorder.meta["object_scale"] = args.object_scale
+        recorder.meta["object_side_length_m"] = round(2.0 * object_half_size, 4)
+        recorder.meta["object_mass_kg"] = round(
+            float(env.unwrapped.model.body("object").mass[0]), 6)
+        if args.policy == "gpt":
+            recorder.meta["action_names_anonymized"] = True
+            recorder.meta["action_interface"] = "anonymous_name_with_kinematic_description"
+            recorder.meta["action_selection"] = "full_orientation_soft_rules_v1"
+            recorder.meta["memory_mode"] = (
+                "recent5_plus_episode_yaw_rotation_distance_tilt_stats")
         try:
             summary = run_episode(
                 env, policy, max_cycles=args.max_cycles, seed=seed,
