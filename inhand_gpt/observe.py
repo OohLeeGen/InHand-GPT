@@ -105,6 +105,9 @@ def pack_observation(
     tilt_error = float(np.linalg.norm(rotation_error[:2]))
     drift = block_pos - np.asarray(initial_block_pos, dtype=np.float64)
     drift_xy = float(np.linalg.norm(drift[:2]))
+    raw_observation = np.asarray(obs.get("observation", []), dtype=np.float64)
+    angular_velocity = (raw_observation[51:54]
+                        if raw_observation.size >= 54 else np.zeros(3))
 
     return {
         "cycle": cycle,
@@ -112,6 +115,10 @@ def pack_observation(
         "rot_dist_rad": round(d_rot, 4),
         "rotation_error_xyz_deg": [round(float(v), 3) for v in rotation_error],
         "tilt_error_deg": round(tilt_error, 3),
+        "object_angular_velocity_xyz_rad_s": [
+            round(float(v), 4) for v in angular_velocity],
+        "object_angular_speed_rad_s": round(
+            float(np.linalg.norm(angular_velocity)), 4),
         "success": bool(d_rot < ROTATION_THRESHOLD_RAD),
         "block_pos": [round(float(v), 4) for v in block_pos],
         "drift_xy_m": round(drift_xy, 4),

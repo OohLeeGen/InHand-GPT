@@ -118,10 +118,18 @@ class RuleBaselinePolicy(Policy):
 # --- GPT policy ---------------------------------------------------------------
 
 PROMPT_TEMPLATE = """You are the high-level decision policy for a Shadow Dexterous Hand
-performing in-hand reorientation of a block about the world Z axis (MuJoCo sim).
+performing in-hand reorientation of a marked object (block or sphere) in a
+MuJoCo simulation.
 
 Each cycle you receive a structured observation and must pick exactly ONE
 motion primitive from the menu (or "finish").
+
+Execution is closed-loop and chunked: only a short segment of the selected
+primitive runs before the next observation. Selecting the same action again
+continues its remaining waveform; selecting another action abandons the
+unfinished waveform and starts the new one. The recent history reports step
+start/end, remaining steps, completion, continuation, and replacement. These
+are observations, not constraints: every menu action remains selectable.
 
 Observation semantics:
 - err_deg: signed achieved-minus-desired rotation error about +Z in degrees.
@@ -129,6 +137,11 @@ Observation semantics:
   A small yaw error alone does NOT mean success.
 - rotation_error_xyz_deg: shortest full 3-axis rotation-error vector.
 - tilt_error_deg: magnitude of the X/Y components of that vector.
+- object_shape: block or sphere. A sphere has no geometric faces; its coloured
+  directional markings and tracked quaternion define orientation.
+- object_angular_velocity_xyz_rad_s / object_angular_speed_rad_s: measured
+  object angular velocity. For the sphere, prefer a brief hold when residual
+  spin is high before making a fine correction.
 - rot_dist_rad: unsigned full-orientation geodesic distance. Success requires
   rot_dist_rad < 0.1 rad, not merely |err_deg| < 5.73 deg.
 - drift_xy_m / drift_z_m: block-center displacement from episode start.
@@ -156,13 +169,23 @@ The only soft rule (advisory; it never removes an action):
 - Treat the block as potentially outside the finger region when
   drift_xy_m >= 0.02 or drift_z_m <= -0.01. In that situation, normally choose
   {wrist_lower_action}, the wrist-lowering reseat motion, so the block can
-  slide back toward the finger region. This is advice, not a hard constraint.
+  slide back toward the finger region when that action is available. If it is
+  listed as unavailable, use measured feedback to select a regrasp or other
+  contact-changing motion. This is advice, not a hard constraint.
 
 Important:
 - Every action in the full menu is always legal. category, use_when,
   avoid_when, suggested_scenario, and the rule are not constraints.
 - Positive/negative joint directions in descriptions are actuator-coordinate
   directions only; they do NOT predict block yaw direction.
+- Do not keep repeating one primitive after its effect has decayed. If the
+  same action was used three or more times and its latest full-orientation
+  gain is below 0.01 rad, change to an action from a different contact group,
+  preferably an untried contact-escape action. This is advisory, not a gate.
+- For each XYZ component, a useful measured gain normally has the same sign
+  as the current signed error component. Compare the episode statistics and
+  prefer actions that improve the largest-magnitude component without making
+  rot_dist_rad worse.
 - Choose finish only when observation.success is true.
 
 Reply with ONLY a JSON object, no markdown, no extra text:
@@ -225,10 +248,26 @@ LATERAL_SWEEP_ACTIONS = {
     "ring_lateral_sweep_a", "ring_lateral_sweep_b",
     "ring_lateral_sweep_b_strong", "ring_lateral_ratchet_b",
 }
+TILT_PROBE_ACTIONS = {
+    "tilt_wrist_pitch_a", "tilt_wrist_pitch_b",
+    "tilt_wrist_side_a", "tilt_wrist_side_b",
+    "tilt_index_little_transfer_a", "tilt_index_little_transfer_b",
+    "tilt_thumb_fingers_transfer_a", "tilt_thumb_fingers_transfer_b",
+    "tilt_wrj0_reseat_a", "tilt_wrj0_reseat_b",
+    "tilt_wrj1_reseat_a", "tilt_wrj1_reseat_b",
+    "axis_fine_wrj0_a", "axis_fine_wrj0_b",
+    "axis_fine_wrj1_a", "axis_fine_wrj1_b",
+    "axis_fine_diagonal_a", "axis_fine_diagonal_b",
+    "escape_little_thumb_a", "escape_little_thumb_b",
+    "escape_wrist_finger_a", "escape_wrist_finger_b",
+    "escape_wrj0_reseat_a", "escape_wrj0_reseat_b",
+    "regrasp_then_roll_wr", "little_regrasp_then_roll_th",
+    "regrasp_then_roll_cw", "regrasp_then_roll_ccw",
+}
 NORMAL_ACTIONS = {
     "hold", "roll_cw", "roll_ccw", "roll_lf", "roll_th", "roll_wr",
     "nudge_cw", "nudge_ccw",
-} | MICRO_ACTIONS | LATERAL_SWEEP_ACTIONS
+} | MICRO_ACTIONS | LATERAL_SWEEP_ACTIONS | TILT_PROBE_ACTIONS
 CONTACT_RECOVERY_ACTIONS = {
     "regrasp", "forefinger_regrasp", "middle_finger_regrasp",
     "ring_finger_regrasp", "little_finger_regrasp", "thumb_regrasp",
@@ -249,15 +288,59 @@ GENTLE_CONTACT_SHIFT_ACTIONS = {
 }
 FINE_ORIENTATION_ACTIONS = (
     {"hold", "nudge_cw", "nudge_ccw"}
-    | MICRO_ACTIONS | GENTLE_CONTACT_SHIFT_ACTIONS | RECOVERY_ACTIONS
+    | MICRO_ACTIONS | GENTLE_CONTACT_SHIFT_ACTIONS | TILT_PROBE_ACTIONS
+    | RECOVERY_ACTIONS
 )
 TILT_CORRECTION_ACTIONS = (
-    {"hold"} | MICRO_ACTIONS | GENTLE_CONTACT_SHIFT_ACTIONS | RECOVERY_ACTIONS
+    {"hold"} | MICRO_ACTIONS | GENTLE_CONTACT_SHIFT_ACTIONS
+    | TILT_PROBE_ACTIONS | RECOVERY_ACTIONS
 )
 
 
 def action_guidance(name: str) -> Dict[str, str]:
     """Advisory conditions shown to GPT; never used as a hard filter."""
+    if name == "sphere_hold":
+        return {
+            "category": "sphere_stabilization",
+            "use_when": "sphere motion or angular velocity should settle",
+            "avoid_when": "a measured tangential motion is improving orientation",
+            "suggested_scenario": "brief sphere stabilization",
+        }
+    if name.startswith("sphere_micro_"):
+        return {
+            "category": "sphere_micro_rotation",
+            "use_when": "full orientation error is small",
+            "avoid_when": "a larger measured motion is still useful",
+            "suggested_scenario": "near-target sphere correction",
+        }
+    if name.startswith("sphere_recontact"):
+        return {
+            "category": "sphere_contact_refresh",
+            "use_when": "recent tangential motions have stalled",
+            "avoid_when": "the sphere is already moving usefully",
+            "suggested_scenario": "sphere contact refresh",
+        }
+    if name == "sphere_recenter":
+        return {
+            "category": "sphere_position_recovery",
+            "use_when": "the sphere is moving away from the finger region",
+            "avoid_when": "position and contact are stable",
+            "suggested_scenario": "sphere recentering",
+        }
+    if name.startswith("sphere_y_"):
+        return {
+            "category": "sphere_y_orientation_probe",
+            "use_when": "the measured Y rotation error is significant",
+            "avoid_when": "its latest Y-axis gain was negative",
+            "suggested_scenario": "sphere Y-orientation adjustment",
+        }
+    if name.startswith("sphere_"):
+        return {
+            "category": "sphere_tangential_rotation",
+            "use_when": "measured XYZ feedback supports this contact motion",
+            "avoid_when": "its latest full-orientation gain was negative",
+            "suggested_scenario": "sphere orientation adjustment",
+        }
     if name == "hold":
         return {
             "category": "stabilization",
@@ -285,6 +368,13 @@ def action_guidance(name: str) -> Dict[str, str]:
             "use_when": "ring-thumb rotation has stalled",
             "avoid_when": "object position is unstable",
             "suggested_scenario": "ring-contact relocation",
+        }
+    if name in TILT_PROBE_ACTIONS:
+        return {
+            "category": "three_axis_orientation_probe",
+            "use_when": "X or Y rotation error is significant",
+            "avoid_when": "the same action just increased full orientation error",
+            "suggested_scenario": "X/Y orientation adjustment",
         }
     if name in MICRO_ACTIONS:
         return {
@@ -392,6 +482,18 @@ def build_action_stats(history: List[Dict[str, Any]]) -> Dict[str, Any]:
         rotation_gains = [
             float(item.get("rot_dist_gain_rad", 0.0)) for item in items]
         tilt_gains = [float(item.get("tilt_gain_deg", 0.0)) for item in items]
+        axis_gains = [
+            item.get("rotation_error_gain_xyz_deg", [0.0, 0.0, 0.0])
+            for item in items
+        ]
+        recent_items = items[-3:]
+        recent_rotation_gains = rotation_gains[-3:]
+        recent_axis_gains = axis_gains[-3:]
+        consecutive_recent_uses = 0
+        for history_item in reversed(history):
+            if history_item.get("choice") != choice:
+                break
+            consecutive_recent_uses += 1
         stats[choice] = {
             "uses": len(items),
             "helpful_uses": sum(gain > 0.0 for gain in gains),
@@ -401,9 +503,28 @@ def build_action_stats(history: List[Dict[str, Any]]) -> Dict[str, Any]:
             "mean_rot_dist_gain_rad": round(
                 sum(rotation_gains) / len(rotation_gains), 4),
             "last_rot_dist_gain_rad": round(rotation_gains[-1], 4),
+            "recent3_mean_rot_dist_gain_rad": round(
+                sum(recent_rotation_gains) / len(recent_rotation_gains), 4),
+            "rot_dist_gain_trend": round(
+                rotation_gains[-1] - rotation_gains[-2], 4)
+                if len(rotation_gains) >= 2 else None,
+            "consecutive_recent_uses": consecutive_recent_uses,
+            "stalled_after_repetition": (
+                len(items) >= 3 and rotation_gains[-1] < 0.01),
             "mean_tilt_gain_deg": round(
                 sum(tilt_gains) / len(tilt_gains), 3),
             "last_tilt_gain_deg": round(tilt_gains[-1], 3),
+            "mean_rotation_error_gain_xyz_deg": [
+                round(sum(float(gain[axis]) for gain in axis_gains)
+                      / len(axis_gains), 3)
+                for axis in range(3)
+            ],
+            "last_rotation_error_gain_xyz_deg": axis_gains[-1],
+            "recent3_mean_rotation_error_gain_xyz_deg": [
+                round(sum(float(gain[axis]) for gain in recent_axis_gains)
+                      / len(recent_axis_gains), 3)
+                for axis in range(3)
+            ],
             "helpful_position_uses": sum(gain > 0.0 for gain in position_gains),
             "mean_position_gain_m": round(
                 sum(position_gains) / len(position_gains), 4),
@@ -483,13 +604,11 @@ class GPTPolicy(Policy):
                menu: List[Dict[str, Any]]) -> Dict[str, str]:
         prompt_history, prompt_menu, name_by_alias = anonymize_action_interface(
             history, menu)
-        all_names = {item["name"] for item in menu}
-        selection_mode, _, _ = select_orientation_phase(
-            obs, history, all_names)
+        selection_mode = "uniform_full_menu"
         prompt_menu = add_action_guidance(prompt_menu, name_by_alias)
-        wrist_lower_action = next(
+        wrist_lower_action = next((
             alias for alias, name in name_by_alias.items()
-            if name == "wrist_lower_reseat")
+            if name == "wrist_lower_reseat"), "not available")
         action_stats = build_action_stats(prompt_history)
         tried = set(action_stats)
         untried_actions = [

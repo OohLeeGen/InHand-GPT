@@ -24,6 +24,7 @@ ENV_ID = "HandManipulateBlockRotateZ-v1"
 DEFAULT_OBJECT_SCALE = 1.07
 MIN_OBJECT_SCALE = 1.00
 MAX_OBJECT_SCALE = 1.15
+MAX_SPHERE_SCALE = 2.00
 
 
 class VideoWriter:
@@ -59,28 +60,50 @@ class VideoWriter:
 def object_scale_arg(value: str) -> float:
     """Argparse validator that prevents accidentally oversized test objects."""
     scale = float(value)
-    if not MIN_OBJECT_SCALE <= scale <= MAX_OBJECT_SCALE:
+    if not MIN_OBJECT_SCALE <= scale <= MAX_SPHERE_SCALE:
         raise argparse.ArgumentTypeError(
             f"object scale must be in [{MIN_OBJECT_SCALE:.2f}, "
-            f"{MAX_OBJECT_SCALE:.2f}]")
+            f"{MAX_SPHERE_SCALE:.2f}]")
     return scale
 
 
 def build_env(seed: int, need_video: bool,
-              object_scale: float = DEFAULT_OBJECT_SCALE):
+              object_scale: float = DEFAULT_OBJECT_SCALE,
+              object_shape: str = "block"):
     env = gym.make(
         ENV_ID,
         render_mode="rgb_array" if need_video else None,
-        max_episode_steps=2000,  # 25 cycles x ~30 steps must not hit the TimeLimit
+        max_episode_steps=5000,  # allow 50 cycles including longer escape primitives
     )
-    # The stock cube has 0.025 m half-extents (5 cm side length). Scaling the
-    # already-loaded model keeps the installed Gymnasium-Robotics XML intact.
-    # Mass scales with volume and inertia with length^5 at constant density.
     model = env.unwrapped.model
-    model.geom("object").size[:] *= object_scale
-    model.geom("object_hidden").size[:] *= object_scale
-    model.body("object").mass[:] *= object_scale ** 3
-    model.body("object").inertia[:] *= object_scale ** 5
+    if object_shape == "block":
+        # The stock cube has 0.025 m half-extents (5 cm side length).
+        model.geom("object").size[:] *= object_scale
+        model.geom("object_hidden").size[:] *= object_scale
+        model.geom("target").size[:] *= object_scale
+        model.body("object").mass[:] *= object_scale ** 3
+        model.body("object").inertia[:] *= object_scale ** 5
+    elif object_shape == "sphere":
+        # Reuse the stock six-colour/letter texture as six directional sphere
+        # markings. Only the project model instance is changed; package assets
+        # and the original block environment stay untouched.
+        import math
+        import mujoco
+        radius = 0.025 * object_scale
+        sphere_type = int(mujoco.mjtGeom.mjGEOM_SPHERE)
+        for name, geom_radius in (
+                ("object", radius), ("object_hidden", radius * 0.98),
+                ("target", radius)):
+            geom = model.geom(name)
+            geom.type = sphere_type
+            geom.size[:] = geom_radius
+        density = 567.0
+        mass = (4.0 / 3.0) * math.pi * radius ** 3 * density
+        inertia = (2.0 / 5.0) * mass * radius ** 2
+        model.body("object").mass[:] = mass
+        model.body("object").inertia[:] = inertia
+    else:
+        raise ValueError(f"unknown object shape: {object_shape}")
     return env
 
 
@@ -90,17 +113,33 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--episodes", type=int, default=1)
     ap.add_argument("--max-cycles", type=int, default=25)
+    ap.add_argument(
+        "--object-shape", choices=["block", "sphere"], default="block",
+        help="manipulated object; sphere uses six coloured directional markings")
+    ap.add_argument(
+        "--lock-error-deg", type=float, default=0.5,
+        help="finish without another action when all XYZ errors are within this value")
+    ap.add_argument(
+        "--primitive-chunk-steps", type=int, default=6,
+        help="maximum simulation steps executed before observing and deciding again")
     ap.add_argument("--deadband", type=float, default=5.0,
                     help="deg, baseline finish deadband (success threshold is 5.73deg)")
     ap.add_argument(
         "--object-scale", type=object_scale_arg, default=DEFAULT_OBJECT_SCALE,
-        help="cube linear scale, 1.00-1.15 (default: 1.07 = 5.35 cm side)")
+        help="object linear scale, 1.00-1.15 (sphere base diameter: 5 cm)")
     ap.add_argument("--video", type=str, default=None, help="mp4 path (episode 1 only)")
     ap.add_argument("--export", type=str, default=None, help="json export path")
     ap.add_argument("--dry-run", action="store_true",
                     help="gpt policy: print the full prompt, send nothing")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
+    if args.object_shape == "block" and args.object_scale > MAX_OBJECT_SCALE:
+        ap.error(f"block object scale must not exceed {MAX_OBJECT_SCALE:.2f}; "
+                 f"sphere scale may be up to {MAX_SPHERE_SCALE:.2f}")
+    if args.lock_error_deg <= 0:
+        ap.error("--lock-error-deg must be positive")
+    if args.primitive_chunk_steps < 1:
+        ap.error("--primitive-chunk-steps must be at least 1")
 
     try:
         if args.policy == "baseline":
@@ -118,7 +157,7 @@ def main() -> int:
         video_path = args.video if (args.video and ep == 0) else None
         env = build_env(
             seed, need_video=video_path is not None,
-            object_scale=args.object_scale)
+            object_scale=args.object_scale, object_shape=args.object_shape)
 
         vw = VideoWriter(video_path) if video_path else None
 
@@ -130,21 +169,29 @@ def main() -> int:
         recorder = Recorder(policy_name=policy.name, seed=seed, max_cycles=args.max_cycles)
         object_half_size = float(env.unwrapped.model.geom("object").size[0])
         recorder.meta["object_scale"] = args.object_scale
-        recorder.meta["object_side_length_m"] = round(2.0 * object_half_size, 4)
+        recorder.meta["object_shape"] = args.object_shape
+        recorder.meta["object_diameter_m" if args.object_shape == "sphere"
+                      else "object_side_length_m"] = round(
+                          2.0 * object_half_size, 4)
         recorder.meta["object_mass_kg"] = round(
             float(env.unwrapped.model.body("object").mass[0]), 6)
+        recorder.meta["lock_error_deg"] = args.lock_error_deg
+        recorder.meta["primitive_chunk_steps"] = args.primitive_chunk_steps
         if args.policy == "gpt":
             recorder.meta["action_names_anonymized"] = True
             recorder.meta["action_interface"] = "anonymous_name_with_kinematic_description"
-            recorder.meta["action_selection"] = "full_orientation_soft_rules_v1"
+            recorder.meta["action_selection"] = "uniform_full_menu_chunked_v1"
             recorder.meta["memory_mode"] = (
-                "recent5_plus_episode_yaw_rotation_distance_tilt_stats")
+                "recent5_plus_local_recent3_xyz_effect_stats")
         try:
             summary = run_episode(
                 env, policy, max_cycles=args.max_cycles, seed=seed,
                 recorder=recorder,
                 frame_fn=frame_fn if vw else None,
                 verbose=not args.quiet,
+                lock_error_deg=args.lock_error_deg,
+                primitive_chunk_steps=args.primitive_chunk_steps,
+                object_shape=args.object_shape,
             )
         finally:
             if vw:

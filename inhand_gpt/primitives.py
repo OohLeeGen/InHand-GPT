@@ -160,11 +160,17 @@ def get(name: str) -> Primitive:
     return PRIMITIVES[name]
 
 
-def menu() -> List[Dict[str, str]]:
+def menu(object_shape: str = "block") -> List[Dict[str, str]]:
     """Candidate menu handed to the GPT policy."""
+    if object_shape == "block":
+        allowed = globals().get("BLOCK_PRIMITIVE_NAMES", set(PRIMITIVES))
+    elif object_shape == "sphere":
+        allowed = globals().get("SPHERE_PRIMITIVE_NAMES", set())
+    else:
+        raise ValueError(f"unknown object shape: {object_shape}")
     return [
         {"name": p.name, "description": p.description, "n_steps": p.n_steps}
-        for p in PRIMITIVES.values()
+        for p in PRIMITIVES.values() if p.name in allowed
     ]
 
 
@@ -701,3 +707,675 @@ register(Primitive(
                 "support during contact formation.",
     tags=["roll", "contact_shift", "small_object", "ratchet"],
 ))
+
+# Low-amplitude paired probes for correcting non-Z orientation error.  The
+# names identify commanded joint groups, not guaranteed world-axis effects;
+# contact geometry determines the measured X/Y response at runtime.
+register(Primitive(
+    name="tilt_wrist_pitch_a",
+    n_steps=16,
+    action_fn=_staged([
+        (4, {"FFJ1": 0.04, "FFJ2": 0.04, "MFJ1": 0.04,
+             "MFJ2": 0.04, "RFJ1": 0.04, "RFJ2": 0.04}),
+        (4, {"WRJ0": 0.10, "THJ4": 0.035}),
+        (4, {"WRJ0": -0.10, "THJ4": -0.025}),
+        (4, {"FFJ1": -0.03, "FFJ2": -0.03, "MFJ1": -0.03,
+             "MFJ2": -0.03, "RFJ1": -0.03, "RFJ2": -0.03}),
+    ]),
+    description="Lightly flex three finger pairs, move WRJ0 in direction A "
+                "with small THJ4 support, return WRJ0, then partly release "
+                "the three finger pairs.",
+    tags=["orientation", "tilt_probe", "small_object"],
+))
+register(Primitive(
+    name="tilt_wrist_pitch_b",
+    n_steps=16,
+    action_fn=_staged([
+        (4, {"FFJ1": 0.04, "FFJ2": 0.04, "MFJ1": 0.04,
+             "MFJ2": 0.04, "RFJ1": 0.04, "RFJ2": 0.04}),
+        (4, {"WRJ0": -0.10, "THJ4": -0.035}),
+        (4, {"WRJ0": 0.10, "THJ4": 0.025}),
+        (4, {"FFJ1": -0.03, "FFJ2": -0.03, "MFJ1": -0.03,
+             "MFJ2": -0.03, "RFJ1": -0.03, "RFJ2": -0.03}),
+    ]),
+    description="Lightly flex three finger pairs, move WRJ0 in direction B "
+                "with reverse THJ4 support, return WRJ0, then partly release "
+                "the three finger pairs.",
+    tags=["orientation", "tilt_probe", "small_object"],
+))
+register(Primitive(
+    name="tilt_wrist_side_a",
+    n_steps=16,
+    action_fn=_staged([
+        (4, {"FFJ1": 0.05, "FFJ2": 0.05,
+             "LFJ1": -0.03, "LFJ2": -0.03}),
+        (4, {"WRJ1": 0.10, "MFJ1": 0.04, "MFJ2": 0.04}),
+        (4, {"FFJ1": -0.04, "FFJ2": -0.04,
+             "LFJ1": 0.05, "LFJ2": 0.05}),
+        (4, {"WRJ1": -0.10}),
+    ]),
+    description="Shift contact toward the forefinger side, move WRJ1 in "
+                "direction A with light middle-finger support, shift contact "
+                "toward the little-finger side, then return WRJ1.",
+    tags=["orientation", "tilt_probe", "small_object"],
+))
+register(Primitive(
+    name="tilt_wrist_side_b",
+    n_steps=16,
+    action_fn=_staged([
+        (4, {"LFJ1": 0.05, "LFJ2": 0.05,
+             "FFJ1": -0.03, "FFJ2": -0.03}),
+        (4, {"WRJ1": -0.10, "MFJ1": 0.04, "MFJ2": 0.04}),
+        (4, {"LFJ1": -0.04, "LFJ2": -0.04,
+             "FFJ1": 0.05, "FFJ2": 0.05}),
+        (4, {"WRJ1": 0.10}),
+    ]),
+    description="Shift contact toward the little-finger side, move WRJ1 in "
+                "direction B with light middle-finger support, shift contact "
+                "toward the forefinger side, then return WRJ1.",
+    tags=["orientation", "tilt_probe", "small_object"],
+))
+register(Primitive(
+    name="tilt_index_little_transfer_a",
+    n_steps=14,
+    action_fn=_staged([
+        (5, {"FFJ1": 0.07, "FFJ2": 0.07,
+             "LFJ1": -0.05, "LFJ2": -0.05}),
+        (4, {"FFJ3": 0.05, "LFJ4": -0.04}),
+        (5, {"FFJ1": -0.05, "FFJ2": -0.05,
+             "LFJ1": 0.04, "LFJ2": 0.04,
+             "FFJ3": -0.04, "LFJ4": 0.03}),
+    ]),
+    description="Flex the forefinger pair while extending the little-finger "
+                "pair, move FFJ3 and LFJ4 in opposite directions, then "
+                "partly reverse all commanded joints.",
+    tags=["orientation", "tilt_probe", "small_object"],
+))
+register(Primitive(
+    name="tilt_index_little_transfer_b",
+    n_steps=14,
+    action_fn=_staged([
+        (5, {"LFJ1": 0.07, "LFJ2": 0.07,
+             "FFJ1": -0.05, "FFJ2": -0.05}),
+        (4, {"LFJ4": 0.05, "FFJ3": -0.04}),
+        (5, {"LFJ1": -0.05, "LFJ2": -0.05,
+             "FFJ1": 0.04, "FFJ2": 0.04,
+             "LFJ4": -0.04, "FFJ3": 0.03}),
+    ]),
+    description="Flex the little-finger pair while extending the forefinger "
+                "pair, move LFJ4 and FFJ3 in opposite directions, then "
+                "partly reverse all commanded joints.",
+    tags=["orientation", "tilt_probe", "small_object"],
+))
+register(Primitive(
+    name="tilt_thumb_fingers_transfer_a",
+    n_steps=14,
+    action_fn=_staged([
+        (5, {"THJ0": 0.06, "THJ3": 0.05,
+             "MFJ1": -0.04, "MFJ2": -0.04,
+             "RFJ1": -0.04, "RFJ2": -0.04}),
+        (4, {"THJ4": 0.05, "MFJ3": -0.04, "RFJ3": -0.04}),
+        (5, {"THJ0": -0.05, "THJ3": -0.04, "THJ4": -0.04,
+             "MFJ1": 0.03, "MFJ2": 0.03, "MFJ3": 0.03,
+             "RFJ1": 0.03, "RFJ2": 0.03, "RFJ3": 0.03}),
+    ]),
+    description="Move the thumb inward while partly extending the middle "
+                "and ring fingers, add opposed THJ4 and MFJ3/RFJ3 motion, "
+                "then partly reverse the commanded joints.",
+    tags=["orientation", "tilt_probe", "small_object"],
+))
+register(Primitive(
+    name="tilt_thumb_fingers_transfer_b",
+    n_steps=14,
+    action_fn=_staged([
+        (5, {"MFJ1": 0.06, "MFJ2": 0.06,
+             "RFJ1": 0.06, "RFJ2": 0.06,
+             "THJ0": -0.04, "THJ3": -0.04}),
+        (4, {"MFJ3": 0.04, "RFJ3": 0.04, "THJ4": -0.05}),
+        (5, {"MFJ1": -0.05, "MFJ2": -0.05, "MFJ3": -0.03,
+             "RFJ1": -0.05, "RFJ2": -0.05, "RFJ3": -0.03,
+             "THJ0": 0.03, "THJ3": 0.03, "THJ4": 0.04}),
+    ]),
+    description="Flex the middle and ring fingers while partly moving the "
+                "thumb outward, add opposed MFJ3/RFJ3 and THJ4 motion, then "
+                "partly reverse the commanded joints.",
+    tags=["orientation", "tilt_probe", "small_object"],
+))
+
+register(Primitive(
+    name="tilt_wrj0_reseat_a",
+    n_steps=34,
+    action_fn=_staged([
+        (5, {"FFJ1": -0.10, "FFJ2": -0.10,
+             "MFJ1": -0.10, "MFJ2": -0.10}),
+        (8, {"WRJ0": 0.20, "RFJ1": 0.05, "RFJ2": 0.05}),
+        (7, {}),
+        (7, {"FFJ1": 0.12, "FFJ2": 0.12,
+             "MFJ1": 0.12, "MFJ2": 0.12,
+             "RFJ1": 0.05, "RFJ2": 0.05}),
+        (7, {"WRJ0": -0.20, "FFJ1": 0.02, "FFJ2": 0.02,
+             "MFJ1": 0.02, "MFJ2": 0.02}),
+    ]),
+    description="Extend the forefinger and middle-finger pairs, move WRJ0 "
+                "farther in direction A with ring-finger support, hold, "
+                "re-flex the fingers, then return WRJ0.",
+    tags=["orientation", "tilt_adjust", "wrist"],
+))
+register(Primitive(
+    name="tilt_wrj0_reseat_b",
+    n_steps=34,
+    action_fn=_staged([
+        (5, {"FFJ1": -0.10, "FFJ2": -0.10,
+             "MFJ1": -0.10, "MFJ2": -0.10}),
+        (8, {"WRJ0": -0.20, "RFJ1": 0.05, "RFJ2": 0.05}),
+        (7, {}),
+        (7, {"FFJ1": 0.12, "FFJ2": 0.12,
+             "MFJ1": 0.12, "MFJ2": 0.12,
+             "RFJ1": 0.05, "RFJ2": 0.05}),
+        (7, {"WRJ0": 0.20, "FFJ1": 0.02, "FFJ2": 0.02,
+             "MFJ1": 0.02, "MFJ2": 0.02}),
+    ]),
+    description="Extend the forefinger and middle-finger pairs, move WRJ0 "
+                "farther in direction B with ring-finger support, hold, "
+                "re-flex the fingers, then return WRJ0.",
+    tags=["orientation", "tilt_adjust", "wrist"],
+))
+register(Primitive(
+    name="tilt_wrj1_reseat_a",
+    n_steps=26,
+    action_fn=_staged([
+        (5, {"FFJ1": -0.07, "FFJ2": -0.07,
+             "LFJ1": 0.06, "LFJ2": 0.06}),
+        (7, {"WRJ1": 0.16, "MFJ1": 0.04, "MFJ2": 0.04}),
+        (5, {}),
+        (5, {"FFJ1": 0.09, "FFJ2": 0.09,
+             "LFJ1": -0.05, "LFJ2": -0.05}),
+        (4, {"WRJ1": -0.16}),
+    ]),
+    description="Shift finger contact asymmetrically, move WRJ1 farther in "
+                "direction A with middle-finger support, hold, exchange the "
+                "side contacts, then return WRJ1.",
+    tags=["orientation", "tilt_adjust", "wrist"],
+))
+register(Primitive(
+    name="tilt_wrj1_reseat_b",
+    n_steps=26,
+    action_fn=_staged([
+        (5, {"LFJ1": -0.07, "LFJ2": -0.07,
+             "FFJ1": 0.06, "FFJ2": 0.06}),
+        (7, {"WRJ1": -0.16, "MFJ1": 0.04, "MFJ2": 0.04}),
+        (5, {}),
+        (5, {"LFJ1": 0.09, "LFJ2": 0.09,
+             "FFJ1": -0.05, "FFJ2": -0.05}),
+        (4, {"WRJ1": 0.16}),
+    ]),
+    description="Shift finger contact asymmetrically, move WRJ1 farther in "
+                "direction B with middle-finger support, hold, exchange the "
+                "side contacts, then return WRJ1.",
+    tags=["orientation", "tilt_adjust", "wrist"],
+))
+
+# Short paired orientation motions for late-stage, direction-dependent
+# correction.  Descriptions state only commanded kinematics; the policy uses
+# measured XYZ gains to learn which member helps in the current contact state.
+register(Primitive(
+    name="axis_fine_wrj0_a", n_steps=12,
+    action_fn=_staged([
+        (3, {"FFJ1": 0.035, "MFJ1": 0.035, "RFJ1": 0.035}),
+        (4, {"WRJ0": 0.055, "THJ4": 0.025}),
+        (2, {"FFJ1": 0.02, "MFJ1": 0.02, "RFJ1": 0.02}),
+        (3, {"WRJ0": -0.055, "THJ4": -0.02,
+             "FFJ1": -0.025, "MFJ1": -0.025, "RFJ1": -0.025}),
+    ]),
+    description="Lightly brace three fingers, move WRJ0 in direction A with "
+                "thumb support, then partly return the commanded joints.",
+    tags=["orientation", "axis_fine", "small_object"],
+))
+register(Primitive(
+    name="axis_fine_wrj0_b", n_steps=12,
+    action_fn=_staged([
+        (3, {"FFJ1": 0.035, "MFJ1": 0.035, "RFJ1": 0.035}),
+        (4, {"WRJ0": -0.055, "THJ4": -0.025}),
+        (2, {"FFJ1": 0.02, "MFJ1": 0.02, "RFJ1": 0.02}),
+        (3, {"WRJ0": 0.055, "THJ4": 0.02,
+             "FFJ1": -0.025, "MFJ1": -0.025, "RFJ1": -0.025}),
+    ]),
+    description="Lightly brace three fingers, move WRJ0 in direction B with "
+                "reverse thumb support, then partly return the commanded joints.",
+    tags=["orientation", "axis_fine", "small_object"],
+))
+register(Primitive(
+    name="axis_fine_wrj1_a", n_steps=12,
+    action_fn=_staged([
+        (3, {"FFJ1": 0.04, "FFJ2": 0.03,
+             "LFJ1": -0.025, "LFJ2": -0.02}),
+        (4, {"WRJ1": 0.055, "MFJ1": 0.025}),
+        (2, {"LFJ1": 0.035, "LFJ2": 0.025}),
+        (3, {"WRJ1": -0.055, "FFJ1": -0.03, "FFJ2": -0.02,
+             "LFJ1": -0.025, "LFJ2": -0.02}),
+    ]),
+    description="Shift light contact toward the forefinger side, move WRJ1 "
+                "in direction A, exchange side support, then return WRJ1.",
+    tags=["orientation", "axis_fine", "small_object"],
+))
+register(Primitive(
+    name="axis_fine_wrj1_b", n_steps=12,
+    action_fn=_staged([
+        (3, {"LFJ1": 0.04, "LFJ2": 0.03,
+             "FFJ1": -0.025, "FFJ2": -0.02}),
+        (4, {"WRJ1": -0.055, "MFJ1": 0.025}),
+        (2, {"FFJ1": 0.035, "FFJ2": 0.025}),
+        (3, {"WRJ1": 0.055, "LFJ1": -0.03, "LFJ2": -0.02,
+             "FFJ1": -0.025, "FFJ2": -0.02}),
+    ]),
+    description="Shift light contact toward the little-finger side, move WRJ1 "
+                "in direction B, exchange side support, then return WRJ1.",
+    tags=["orientation", "axis_fine", "small_object"],
+))
+register(Primitive(
+    name="axis_fine_diagonal_a", n_steps=12,
+    action_fn=_staged([
+        (4, {"THJ0": 0.04, "THJ3": 0.035,
+             "FFJ1": 0.035, "FFJ2": 0.03,
+             "RFJ1": -0.025, "LFJ1": -0.03}),
+        (4, {"THJ4": 0.035, "FFJ3": 0.03,
+             "RFJ3": -0.025, "LFJ3": -0.03}),
+        (4, {"THJ0": -0.035, "THJ3": -0.03, "THJ4": -0.03,
+             "FFJ1": -0.03, "FFJ2": -0.025, "FFJ3": -0.025,
+             "RFJ1": 0.02, "RFJ3": 0.02,
+             "LFJ1": 0.025, "LFJ3": 0.025}),
+    ]),
+    description="Move thumb and forefinger inward while lightly releasing the "
+                "ring/little side, add opposed lateral motion, then return.",
+    tags=["orientation", "axis_fine", "small_object"],
+))
+register(Primitive(
+    name="axis_fine_diagonal_b", n_steps=12,
+    action_fn=_staged([
+        (4, {"RFJ1": 0.035, "LFJ1": 0.04,
+             "THJ0": -0.03, "THJ3": -0.025,
+             "FFJ1": -0.025, "FFJ2": -0.02}),
+        (4, {"RFJ3": 0.03, "LFJ3": 0.035,
+             "THJ4": -0.035, "FFJ3": -0.025}),
+        (4, {"RFJ1": -0.03, "RFJ3": -0.025,
+             "LFJ1": -0.035, "LFJ3": -0.03,
+             "THJ0": 0.025, "THJ3": 0.02, "THJ4": 0.03,
+             "FFJ1": 0.02, "FFJ2": 0.02, "FFJ3": 0.02}),
+    ]),
+    description="Move the ring/little side inward while partly releasing the "
+                "thumb/forefinger side, add opposed lateral motion, then return.",
+    tags=["orientation", "axis_fine", "small_object"],
+))
+
+# Contact-changing compound motions derived from the four-panel dead-zone
+# scan.  They combine a release/reseat phase with a different actuator group,
+# avoiding repeated commands against already saturated finger joints.
+register(Primitive(
+    name="escape_little_thumb_a", n_steps=32,
+    action_fn=_staged([
+        (5, {"LFJ1": -0.10, "LFJ2": -0.10, "THJ0": -0.04}),
+        (6, {"LFJ4": 0.08, "RFJ1": 0.05, "RFJ2": 0.05}),
+        (6, {"LFJ1": 0.13, "LFJ2": 0.13, "THJ0": 0.05}),
+        (7, {"THJ0": 0.10, "THJ3": 0.09,
+             "FFJ1": 0.04, "MFJ1": 0.04}),
+        (8, {"THJ0": -0.09, "THJ3": -0.08, "LFJ4": -0.07,
+             "LFJ1": -0.04, "LFJ2": -0.04}),
+    ]),
+    description="Release and laterally move the little finger, re-form its "
+                "contact, sweep the thumb with light fore/middle support, "
+                "then partly return the commanded joints.",
+    tags=["orientation", "contact_escape", "small_object"],
+))
+register(Primitive(
+    name="escape_little_thumb_b", n_steps=32,
+    action_fn=_staged([
+        (5, {"LFJ1": -0.10, "LFJ2": -0.10, "THJ0": 0.04}),
+        (6, {"LFJ4": -0.08, "RFJ1": 0.05, "RFJ2": 0.05}),
+        (6, {"LFJ1": 0.13, "LFJ2": 0.13, "THJ0": -0.05}),
+        (7, {"THJ0": -0.10, "THJ3": -0.09,
+             "FFJ1": 0.04, "MFJ1": 0.04}),
+        (8, {"THJ0": 0.09, "THJ3": 0.08, "LFJ4": 0.07,
+             "LFJ1": -0.04, "LFJ2": -0.04}),
+    ]),
+    description="Release and move the little finger in the opposite lateral "
+                "direction, re-form contact, reverse the thumb sweep, then "
+                "partly return the commanded joints.",
+    tags=["orientation", "contact_escape", "small_object"],
+))
+register(Primitive(
+    name="escape_wrist_finger_a", n_steps=34,
+    action_fn=_staged([
+        (6, {"FFJ1": -0.10, "FFJ2": -0.10,
+             "MFJ1": -0.07, "MFJ2": -0.07}),
+        (7, {"WRJ1": 0.14, "RFJ1": 0.06, "LFJ1": 0.05}),
+        (6, {"FFJ1": 0.14, "FFJ2": 0.12,
+             "MFJ1": 0.09, "MFJ2": 0.08}),
+        (7, {"FFJ3": 0.08, "WRJ1": -0.08, "THJ4": 0.05}),
+        (8, {"WRJ1": -0.06, "FFJ3": -0.07, "THJ4": -0.04,
+             "FFJ1": -0.04, "FFJ2": -0.04}),
+    ]),
+    description="Release the fore/middle pairs, move WRJ1 with ring/little "
+                "support, re-flex the released fingers, add a short forefinger "
+                "lateral sweep, then return the wrist and forefinger.",
+    tags=["orientation", "contact_escape", "wrist"],
+))
+register(Primitive(
+    name="escape_wrist_finger_b", n_steps=34,
+    action_fn=_staged([
+        (6, {"RFJ1": -0.09, "RFJ2": -0.09,
+             "LFJ1": -0.08, "LFJ2": -0.08}),
+        (7, {"WRJ1": -0.14, "FFJ1": 0.06, "MFJ1": 0.05}),
+        (6, {"RFJ1": 0.13, "RFJ2": 0.11,
+             "LFJ1": 0.12, "LFJ2": 0.10}),
+        (7, {"RFJ3": -0.08, "WRJ1": 0.08, "THJ4": -0.05}),
+        (8, {"WRJ1": 0.06, "RFJ3": 0.07, "THJ4": 0.04,
+             "RFJ1": -0.04, "RFJ2": -0.04}),
+    ]),
+    description="Release the ring/little pairs, move WRJ1 oppositely with "
+                "fore/middle support, re-flex the released fingers, add a "
+                "short ring-finger lateral sweep, then return.",
+    tags=["orientation", "contact_escape", "wrist"],
+))
+register(Primitive(
+    name="escape_wrj0_reseat_a", n_steps=38,
+    action_fn=_staged([
+        (6, {"FFJ1": -0.12, "FFJ2": -0.12,
+             "MFJ1": -0.10, "MFJ2": -0.10,
+             "RFJ1": 0.04, "RFJ2": 0.04}),
+        (8, {"WRJ0": 0.22, "LFJ1": 0.07, "LFJ2": 0.07}),
+        (6, {"RFJ1": -0.06, "RFJ2": -0.06,
+             "LFJ1": 0.08, "LFJ2": 0.08}),
+        (8, {"FFJ1": 0.15, "FFJ2": 0.14,
+             "MFJ1": 0.13, "MFJ2": 0.12,
+             "RFJ1": 0.09, "RFJ2": 0.09}),
+        (10, {"WRJ0": -0.20, "FFJ1": 0.02, "MFJ1": 0.02,
+              "LFJ1": -0.05, "LFJ2": -0.05}),
+    ]),
+    description="Release the fore/middle pairs, move WRJ0 farther in direction "
+                "A with little-finger support, exchange ring/little contact, "
+                "re-flex three fingers, then return WRJ0.",
+    tags=["orientation", "contact_escape", "wrist"],
+))
+register(Primitive(
+    name="escape_wrj0_reseat_b", n_steps=38,
+    action_fn=_staged([
+        (6, {"FFJ1": -0.12, "FFJ2": -0.12,
+             "MFJ1": -0.10, "MFJ2": -0.10,
+             "RFJ1": 0.04, "RFJ2": 0.04}),
+        (8, {"WRJ0": -0.22, "LFJ1": 0.07, "LFJ2": 0.07}),
+        (6, {"RFJ1": -0.06, "RFJ2": -0.06,
+             "LFJ1": 0.08, "LFJ2": 0.08}),
+        (8, {"FFJ1": 0.15, "FFJ2": 0.14,
+             "MFJ1": 0.13, "MFJ2": 0.12,
+             "RFJ1": 0.09, "RFJ2": 0.09}),
+        (10, {"WRJ0": 0.20, "FFJ1": 0.02, "MFJ1": 0.02,
+              "LFJ1": -0.05, "LFJ2": -0.05}),
+    ]),
+    description="Release the fore/middle pairs, move WRJ0 farther in direction "
+                "B with little-finger support, exchange ring/little contact, "
+                "re-flex three fingers, then return WRJ0.",
+    tags=["orientation", "contact_escape", "wrist"],
+))
+
+
+def _chain_registered(names: List[str]) -> tuple[int, Callable[[int], np.ndarray]]:
+    """Concatenate existing primitives without changing their waveforms."""
+    parts = [get(name) for name in names]
+    total = sum(part.n_steps for part in parts)
+
+    def fn(t: int) -> np.ndarray:
+        offset = 0
+        for part in parts:
+            if t < offset + part.n_steps:
+                return part.action(t - offset)
+            offset += part.n_steps
+        return np.zeros(N_ACTIONS, dtype=np.float64)
+
+    return total, fn
+
+
+_n_steps, _action_fn = _chain_registered(["regrasp", "roll_wr"])
+register(Primitive(
+    name="regrasp_then_roll_wr", n_steps=_n_steps, action_fn=_action_fn,
+    description="Complete a three-finger extend-and-regrasp cycle, then run "
+                "the WRJ1 oscillation with fore/middle support.",
+    tags=["orientation", "contact_escape", "compound"],
+))
+_n_steps, _action_fn = _chain_registered(["little_finger_regrasp", "roll_th"])
+register(Primitive(
+    name="little_regrasp_then_roll_th", n_steps=_n_steps, action_fn=_action_fn,
+    description="Complete an independent little-finger regrasp, then run the "
+                "thumb oscillation with fore/middle support.",
+    tags=["orientation", "contact_escape", "compound"],
+))
+_n_steps, _action_fn = _chain_registered(["regrasp", "roll_cw"])
+register(Primitive(
+    name="regrasp_then_roll_cw", n_steps=_n_steps, action_fn=_action_fn,
+    description="Complete a three-finger extend-and-regrasp cycle, then run "
+                "the forefinger-biased periodic motion and its return phase.",
+    tags=["orientation", "contact_escape", "compound"],
+))
+_n_steps, _action_fn = _chain_registered(["regrasp", "roll_ccw"])
+register(Primitive(
+    name="regrasp_then_roll_ccw", n_steps=_n_steps, action_fn=_action_fn,
+    description="Complete a three-finger extend-and-regrasp cycle, then run "
+                "the ring-finger/thumb periodic motion and its return phase.",
+    tags=["orientation", "contact_escape", "compound"],
+))
+
+
+# Preserve the original 62 block primitives exactly. Sphere-specific motions
+# are registered separately and are only exposed by menu("sphere").
+BLOCK_PRIMITIVE_NAMES = set(PRIMITIVES)
+SPHERE_PRIMITIVE_NAMES: set[str] = set()
+
+
+def _register_sphere(name: str, drive: Dict[str, float], description: str,
+                     n_steps: int = 18, return_ratio: float = 0.55) -> None:
+    """Sustained tangential motion with support and a partial joint return."""
+    reverse = {joint: -return_ratio * value for joint, value in drive.items()}
+    register(Primitive(
+        name=name, n_steps=n_steps,
+        action_fn=_staged([(8, drive), (4, {}), (6, reverse)]),
+        description=description,
+        tags=["sphere", "tangential_contact", "closed_loop"],
+    ))
+    SPHERE_PRIMITIVE_NAMES.add(name)
+
+
+_register_sphere(
+    "sphere_hold", {},
+    "Keep all finger and wrist commands at zero while preserving the current grasp.")
+
+# Opposed tangential motions. Directions A/B are actuator-coordinate
+# directions; the measured XYZ feedback remains authoritative.
+_SPHERE_MOTIONS = {
+    "sphere_x_a": ({"WRJ0": 0.13, "FFJ1": 0.08, "MFJ1": 0.06,
+                    "RFJ1": -0.05, "LFJ1": -0.05, "THJ0": 0.05},
+                   "Move WRJ0 in direction A while fore/middle and ring/little contacts move oppositely."),
+    "sphere_x_b": ({"WRJ0": -0.13, "FFJ1": -0.06, "MFJ1": -0.05,
+                    "RFJ1": 0.08, "LFJ1": 0.08, "THJ0": -0.05},
+                   "Move WRJ0 in direction B while the two finger sides exchange flexion."),
+    "sphere_y_a": ({"WRJ1": 0.11, "FFJ3": 0.10, "LFJ3": -0.10,
+                    "MFJ1": 0.05, "RFJ1": 0.05, "THJ4": 0.05},
+                   "Move WRJ1 in direction A with opposed forefinger/little-finger lateral motion."),
+    "sphere_y_b": ({"WRJ1": -0.11, "FFJ3": -0.10, "LFJ3": 0.10,
+                    "MFJ1": 0.05, "RFJ1": 0.05, "THJ4": -0.05},
+                   "Move WRJ1 in direction B with reversed forefinger/little-finger lateral motion."),
+    "sphere_z_a": ({"FFJ3": 0.12, "MFJ3": 0.07, "RFJ3": -0.09,
+                    "LFJ3": -0.11, "THJ4": 0.10, "THJ0": 0.05},
+                   "Sweep the radial and ulnar finger contacts in opposed lateral directions with thumb support."),
+    "sphere_z_b": ({"FFJ3": -0.12, "MFJ3": -0.07, "RFJ3": 0.09,
+                    "LFJ3": 0.11, "THJ4": -0.10, "THJ0": 0.05},
+                   "Reverse the opposed lateral finger sweep while maintaining thumb support."),
+    "sphere_thumb_fore_a": ({"THJ4": 0.12, "THJ0": 0.10,
+                             "FFJ3": -0.11, "FFJ1": 0.08},
+                            "Sweep the thumb and forefinger tangentially in opposite directions."),
+    "sphere_thumb_fore_b": ({"THJ4": -0.12, "THJ0": 0.10,
+                             "FFJ3": 0.11, "FFJ1": 0.08},
+                            "Reverse the opposed thumb and forefinger tangential sweep."),
+    "sphere_thumb_middle_a": ({"THJ4": 0.11, "THJ3": 0.08,
+                               "MFJ3": -0.10, "MFJ1": 0.08},
+                              "Sweep the thumb and middle-finger contacts in opposite directions."),
+    "sphere_thumb_middle_b": ({"THJ4": -0.11, "THJ3": 0.08,
+                               "MFJ3": 0.10, "MFJ1": 0.08},
+                              "Reverse the opposed thumb and middle-finger contact sweep."),
+    "sphere_ring_little_a": ({"RFJ3": 0.11, "LFJ3": -0.12,
+                              "RFJ1": 0.08, "LFJ1": 0.08, "THJ0": 0.04},
+                             "Move ring and little-finger lateral contacts oppositely with light thumb support."),
+    "sphere_ring_little_b": ({"RFJ3": -0.11, "LFJ3": 0.12,
+                              "RFJ1": 0.08, "LFJ1": 0.08, "THJ0": 0.04},
+                             "Reverse the opposed ring and little-finger lateral contact motion."),
+}
+for _name, (_drive, _description) in _SPHERE_MOTIONS.items():
+    _register_sphere(_name, _drive, _description)
+
+# Directional contact-transfer actions for the 80 mm sphere.  Unlike the
+# sinusoidal roll_th gait, each action contains one transport stroke followed
+# by a smaller reset stroke, so the policy can select either actuator direction
+# from measured Y-axis feedback.
+register(Primitive(
+    name="sphere_y_thumb_arc_a", n_steps=24,
+    action_fn=_staged([
+        (5, {"FFJ1": 0.16, "FFJ2": 0.12, "MFJ1": 0.14,
+             "MFJ2": 0.10, "RFJ1": 0.07, "LFJ1": 0.06}),
+        (9, {"THJ0": 0.52, "THJ3": -0.32, "THJ4": 0.12,
+             "FFJ1": 0.08, "MFJ1": 0.08}),
+        (4, {"THJ0": 0.16, "THJ3": -0.10,
+             "FFJ1": 0.10, "MFJ1": 0.10}),
+        (6, {"THJ0": -0.30, "THJ3": 0.20, "THJ4": -0.07,
+             "FFJ1": 0.06, "MFJ1": 0.06}),
+    ]),
+    description="Brace the fore/middle contacts, sweep THJ0 and THJ3 in "
+                "opposed direction A with light THJ4 motion, then apply a "
+                "smaller reverse thumb stroke.",
+    tags=["sphere", "orientation", "y_axis_probe", "directional"],
+))
+register(Primitive(
+    name="sphere_y_thumb_arc_b", n_steps=24,
+    action_fn=_staged([
+        (5, {"FFJ1": 0.16, "FFJ2": 0.12, "MFJ1": 0.14,
+             "MFJ2": 0.10, "RFJ1": 0.07, "LFJ1": 0.06}),
+        (9, {"THJ0": -0.52, "THJ3": 0.32, "THJ4": -0.12,
+             "FFJ1": 0.08, "MFJ1": 0.08}),
+        (4, {"THJ0": -0.16, "THJ3": 0.10,
+             "FFJ1": 0.10, "MFJ1": 0.10}),
+        (6, {"THJ0": 0.30, "THJ3": -0.20, "THJ4": 0.07,
+             "FFJ1": 0.06, "MFJ1": 0.06}),
+    ]),
+    description="Brace the fore/middle contacts, sweep THJ0 and THJ3 in "
+                "opposed direction B with reverse THJ4 motion, then apply a "
+                "smaller reverse thumb stroke.",
+    tags=["sphere", "orientation", "y_axis_probe", "directional"],
+))
+register(Primitive(
+    name="sphere_y_thumb_cycle_reverse", n_steps=30,
+    action_fn=_pattern({
+        "THJ0": (-0.80, 0.0, 0.0, 0),
+        "THJ3": (-0.50, -1.57, 0.0, 0),
+        "FFJ1": (0.0, 0.0, 0.20, _INF),
+        "FFJ2": (0.0, 0.0, 0.20, _INF),
+        "MFJ1": (0.0, 0.0, 0.20, _INF),
+        "MFJ2": (0.0, 0.0, 0.20, _INF),
+    }, period=12),
+    description="Oscillate THJ0 and THJ3 along the reverse trajectory of the "
+                "standard thumb cycle while forefinger and middle-finger "
+                "pairs maintain a light flexion bias.",
+    tags=["sphere", "orientation", "y_axis_probe", "directional"],
+))
+register(Primitive(
+    name="sphere_y_contact_transfer_a", n_steps=24,
+    action_fn=_staged([
+        (5, {"RFJ1": 0.16, "RFJ2": 0.12, "LFJ1": 0.18,
+             "LFJ2": 0.13, "FFJ1": -0.07, "MFJ1": -0.06,
+             "THJ0": 0.08}),
+        (8, {"FFJ3": 0.24, "MFJ3": 0.15, "RFJ3": -0.16,
+             "LFJ4": -0.20, "WRJ1": 0.14, "THJ4": 0.08}),
+        (5, {"FFJ1": 0.15, "MFJ1": 0.13, "RFJ1": -0.05,
+             "LFJ1": -0.06, "THJ0": 0.10}),
+        (6, {"FFJ3": -0.13, "MFJ3": -0.08, "RFJ3": 0.09,
+             "LFJ4": 0.11, "WRJ1": -0.08}),
+    ]),
+    description="Shift support to the ring/little side, sweep the radial and "
+                "ulnar lateral joints oppositely with WRJ1 direction A, "
+                "transfer support, then partly reverse the sweep.",
+    tags=["sphere", "orientation", "y_axis_probe", "contact_transfer"],
+))
+register(Primitive(
+    name="sphere_y_contact_transfer_b", n_steps=24,
+    action_fn=_staged([
+        (5, {"FFJ1": 0.18, "FFJ2": 0.13, "MFJ1": 0.16,
+             "MFJ2": 0.12, "RFJ1": -0.07, "LFJ1": -0.06,
+             "THJ0": 0.08}),
+        (8, {"FFJ3": -0.24, "MFJ3": -0.15, "RFJ3": 0.16,
+             "LFJ4": 0.20, "WRJ1": -0.14, "THJ4": -0.08}),
+        (5, {"RFJ1": 0.15, "RFJ2": 0.12, "LFJ1": 0.17,
+             "LFJ2": 0.13, "FFJ1": -0.05, "MFJ1": -0.05,
+             "THJ0": 0.10}),
+        (6, {"FFJ3": 0.13, "MFJ3": 0.08, "RFJ3": -0.09,
+             "LFJ4": -0.11, "WRJ1": 0.08}),
+    ]),
+    description="Shift support to the fore/middle side, reverse the opposed "
+                "radial/ulnar lateral sweep with WRJ1 direction B, transfer "
+                "support, then partly reverse the sweep.",
+    tags=["sphere", "orientation", "y_axis_probe", "contact_transfer"],
+))
+
+# Lower-amplitude counterparts for corrections near the target.
+for _axis in ("x", "y", "z"):
+    for _direction in ("a", "b"):
+        _source = _SPHERE_MOTIONS[f"sphere_{_axis}_{_direction}"][0]
+        _register_sphere(
+            f"sphere_micro_{_axis}_{_direction}",
+            {joint: value * 0.42 for joint, value in _source.items()},
+            f"Apply a low-amplitude version of the {_axis.upper()}-axis {_direction.upper()} contact motion.",
+            n_steps=12, return_ratio=0.65)
+
+_register_sphere(
+    "sphere_recontact_radial",
+    {"FFJ1": -0.10, "FFJ2": -0.10, "MFJ1": -0.08,
+     "MFJ2": -0.08, "RFJ1": 0.07, "LFJ1": 0.07},
+    "Release the fore/middle contacts while ring/little contacts support the sphere, then partly return.",
+    n_steps=20)
+_register_sphere(
+    "sphere_recontact_ulnar",
+    {"RFJ1": -0.10, "RFJ2": -0.10, "LFJ1": -0.10,
+     "LFJ2": -0.10, "FFJ1": 0.07, "MFJ1": 0.07},
+    "Release the ring/little contacts while fore/middle contacts support the sphere, then partly return.",
+    n_steps=20)
+_register_sphere(
+    "sphere_recontact_thumb",
+    {"THJ0": -0.10, "THJ3": -0.08, "THJ4": -0.06,
+     "FFJ1": 0.06, "MFJ1": 0.06, "RFJ1": 0.05},
+    "Release the thumb while three fingers support the sphere, then partly return.",
+    n_steps=20)
+_register_sphere(
+    "sphere_recenter",
+    {"WRJ0": 0.12, "FFJ1": 0.09, "MFJ1": 0.09,
+     "RFJ1": 0.08, "LFJ1": 0.08, "THJ0": 0.08},
+    "Move the wrist and all opposing fingertips inward together, then partly return.",
+    n_steps=22, return_ratio=0.45)
+
+# The existing wrist-lowering primitive remains useful for a sphere outside
+# the finger region and keeps the policy's soft recovery advice available.
+SPHERE_PRIMITIVE_NAMES.add("wrist_lower_reseat")
+
+# The first sphere trial showed that the small sphere-specific commands were
+# visually subtle and led the model to repeat two wrist-dominated actions.
+# Keep those definitions available for later tuning, but expose the original
+# nine well-established primitives for the next sphere comparison.
+SPHERE_EXPERIMENTAL_PRIMITIVE_NAMES = set(SPHERE_PRIMITIVE_NAMES)
+SPHERE_PRIMITIVE_NAMES = {
+    "hold", "roll_cw", "roll_ccw", "roll_lf", "roll_th", "roll_wr",
+    "regrasp", "nudge_cw", "nudge_ccw",
+    # Additional actions selected by zero-command-controlled scans on the
+    # 80 mm sphere across four distinct initial orientations.
+    "forefinger_regrasp", "middle_finger_regrasp",
+    "ring_finger_regrasp", "little_finger_regrasp",
+    "multi_finger_dither", "escape_wrist_finger_b",
+    "escape_little_thumb_b", "recenter_fingertips",
+    "tilt_wrj0_reseat_b",
+    # Direction-paired Y-axis probes calibrated for the 80 mm sphere.
+    "sphere_y_thumb_arc_a", "sphere_y_thumb_arc_b",
+    "sphere_y_thumb_cycle_reverse",
+}
