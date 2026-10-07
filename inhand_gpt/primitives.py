@@ -1365,6 +1365,21 @@ SPHERE_PRIMITIVE_NAMES.add("wrist_lower_reseat")
 # Keep those definitions available for later tuning, but expose the original
 # nine well-established primitives for the next sphere comparison.
 SPHERE_EXPERIMENTAL_PRIMITIVE_NAMES = set(SPHERE_PRIMITIVE_NAMES)
+
+# Preserve the exact roll_lf waveform while extending its contact transport
+# over two complete cycles.  This sequence was selected by a zero-command
+# controlled scan at the difficult four-sphere panel-C terminal state.
+_n_steps, _action_fn = _chain_registered(["roll_lf", "roll_lf"])
+register(Primitive(
+    name="sphere_double_little_finger_cycle",
+    n_steps=_n_steps,
+    action_fn=_action_fn,
+    description="Run two consecutive complete little-finger LFJ4 oscillation "
+                "cycles with their LFJ1/LFJ2 phase motion and ring-finger "
+                "support unchanged.",
+    tags=["sphere", "orientation", "contact_escape", "compound"],
+))
+
 SPHERE_PRIMITIVE_NAMES = {
     "hold", "roll_cw", "roll_ccw", "roll_lf", "roll_th", "roll_wr",
     "regrasp", "nudge_cw", "nudge_ccw",
@@ -1378,4 +1393,8 @@ SPHERE_PRIMITIVE_NAMES = {
     # Direction-paired Y-axis probes calibrated for the 80 mm sphere.
     "sphere_y_thumb_arc_a", "sphere_y_thumb_arc_b",
     "sphere_y_thumb_cycle_reverse",
+    # Terminal-state scans on the four 80 mm sphere presets selected these
+    # complementary orientation/contact motions.
+    "tilt_wrj0_reseat_a", "wrist_raise_reseat",
+    "recenter_forefinger_side", "sphere_double_little_finger_cycle",
 }

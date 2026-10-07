@@ -1,0 +1,98 @@
+{
+  "seed": 0,
+  "execution_mode": "serial",
+  "object_shape": "sphere",
+  "preset_table": "sphere_xyz_v1",
+  "shared_target_goal": [
+    1.0062230383716935,
+    0.8761156984564179,
+    0.16915414227896525,
+    0.5535566367417069,
+    0.0,
+    0.0,
+    0.8328115332529984
+  ],
+  "combined_video": "runs\\k3_sphere_four_xyz_v2_seed0.mp4",
+  "panels": [
+    {
+      "panel": "A",
+      "label": "original 80 mm sphere state",
+      "offset_xyz_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "video": "runs\\k3_sphere_four_xyz_v2_seed0\\hand_a.mp4",
+      "json": "runs\\k3_sphere_four_xyz_v2_seed0\\hand_a.json",
+      "summary": {
+        "outcome": "failure_max_cycles",
+        "n_cycles": 50,
+        "final_err_deg": 61.686,
+        "final_rot_dist_rad": 1.2614,
+        "final_drift_xy_m": 0.0067,
+        "wall_time_s": 2970.41
+      },
+      "api_error": null
+    },
+    {
+      "panel": "B",
+      "label": "X=+35 Y=-30 Z=+55 deg",
+      "offset_xyz_deg": [
+        35.0,
+        -30.0,
+        55.0
+      ],
+      "video": "runs\\k3_sphere_four_xyz_v2_seed0\\hand_b.mp4",
+      "json": "runs\\k3_sphere_four_xyz_v2_seed0\\hand_b.json",
+      "summary": {
+        "outcome": "failure_max_cycles",
+        "n_cycles": 50,
+        "final_err_deg": 75.996,
+        "final_rot_dist_rad": 1.5414,
+        "final_drift_xy_m": 0.0139,
+        "wall_time_s": 3756.64
+      },
+      "api_error": null
+    },
+    {
+      "panel": "C",
+      "label": "X=-40 Y=+35 Z=-70 deg",
+      "offset_xyz_deg": [
+        -40.0,
+        35.0,
+        -70.0
+      ],
+      "video": "runs\\k3_sphere_four_xyz_v2_seed0\\hand_c.mp4",
+      "json": "runs\\k3_sphere_four_xyz_v2_seed0\\hand_c.json",
+      "summary": {
+        "outcome": "failure_max_cycles",
+        "n_cycles": 50,
+        "final_err_deg": -39.408,
+        "final_rot_dist_rad": 1.5931,
+        "final_drift_xy_m": 0.0078,
+        "wall_time_s": 2785.04
+      },
+      "api_error": null
+    },
+    {
+      "panel": "D",
+      "label": "X=-55 Y=-70 Z=+90 deg",
+      "offset_xyz_deg": [
+        -55.0,
+        -70.0,
+        90.0
+      ],
+      "video": "runs\\k3_sphere_four_xyz_v2_seed0\\hand_d.mp4",
+      "json": "runs\\k3_sphere_four_xyz_v2_seed0\\hand_d.json",
+      "summary": {
+        "outcome": "failure_max_cycles",
+        "n_cycles": 50,
+        "final_err_deg": 72.515,
+        "final_rot_dist_rad": 1.3589,
+        "final_drift_xy_m": 0.0071,
+        "wall_time_s": 2162.61
+      },
+      "api_error": null
+    }
+  ]
+}

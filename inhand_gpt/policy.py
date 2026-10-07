@@ -327,6 +327,13 @@ def action_guidance(name: str) -> Dict[str, str]:
             "avoid_when": "position and contact are stable",
             "suggested_scenario": "sphere recentering",
         }
+    if name == "sphere_double_little_finger_cycle":
+        return {
+            "category": "sphere_large_orientation_escape",
+            "use_when": "full orientation error is very large or recent motions stalled",
+            "avoid_when": "position is unstable or a smaller correction is sufficient",
+            "suggested_scenario": "large sphere orientation escape",
+        }
     if name.startswith("sphere_y_"):
         return {
             "category": "sphere_y_orientation_probe",
