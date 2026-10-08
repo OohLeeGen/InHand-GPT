@@ -127,8 +127,10 @@ class LimitedPolicy:
             except PolicyError as exc:
                 message = str(exc).lower()
                 transient = any(token in message for token in (
-                    "timed out", "timeout", "connecterror", "connection",
-                    "unexpected_eof", "temporarily unavailable"))
+                    "timed out", "time-out", "timeout", "connecterror",
+                    "connection", "unexpected_eof", "temporarily unavailable",
+                    "bad gateway", "gateway time-out", "gateway timeout",
+                    "502", "503", "504"))
                 if not transient or attempt >= self.retries:
                     raise
                 delay = 2 * (attempt + 1)
@@ -311,7 +313,7 @@ def main() -> int:
     parser.add_argument("--api-concurrency", type=int, default=1)
     parser.add_argument("--api-timeout", type=float, default=600.0)
     parser.add_argument("--api-retries", type=int, default=2)
-    parser.add_argument("--lock-error-deg", type=float, default=0.5)
+    parser.add_argument("--lock-error-deg", type=float, default=2.0)
     parser.add_argument("--primitive-chunk-steps", type=int, default=6)
     parser.add_argument("--fps", type=int, default=25)
     parser.add_argument("--video", required=True)

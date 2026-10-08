@@ -117,7 +117,7 @@ def main() -> int:
         "--object-shape", choices=["block", "sphere"], default="block",
         help="manipulated object; sphere uses six coloured directional markings")
     ap.add_argument(
-        "--lock-error-deg", type=float, default=0.5,
+        "--lock-error-deg", type=float, default=2.0,
         help="finish without another action when all XYZ errors are within this value")
     ap.add_argument(
         "--primitive-chunk-steps", type=int, default=6,

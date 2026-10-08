@@ -23,7 +23,7 @@ def run_episode(
     recorder: Recorder,
     frame_fn: FrameFn = None,
     verbose: bool = True,
-    lock_error_deg: float = 0.5,
+    lock_error_deg: float = 2.0,
     primitive_chunk_steps: int = 6,
     object_shape: str = "block",
 ) -> Dict[str, Any]:
@@ -110,8 +110,15 @@ def run_episode(
         continuing_primitive = (
             choice == active_choice and active_next_step < prim.n_steps)
         primitive_step_start = active_next_step if continuing_primitive else 0
+        # The legacy double little-finger primitive contains two independent
+        # 30-step cycles.  Even when the caller requests a larger chunk, stop
+        # after one cycle so the policy receives measured feedback before it
+        # decides whether the second cycle is still useful.
+        decision_chunk_steps = primitive_chunk_steps
+        if choice == "sphere_double_little_finger_cycle":
+            decision_chunk_steps = min(decision_chunk_steps, 30)
         primitive_step_end = min(
-            primitive_step_start + primitive_chunk_steps, prim.n_steps)
+            primitive_step_start + decision_chunk_steps, prim.n_steps)
         replaced_incomplete_primitive = (
             active_choice is not None and not continuing_primitive)
         for t in range(primitive_step_start, primitive_step_end):

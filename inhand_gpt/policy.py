@@ -182,6 +182,19 @@ Important:
   same action was used three or more times and its latest full-orientation
   gain is below 0.01 rad, change to an action from a different contact group,
   preferably an untried contact-escape action. This is advisory, not a gate.
+- Treat episode-long mean gains as background evidence only. Prioritize the
+  last gain, the recent weighted gain, and the current XYZ/contact state. A
+  positive early mean must not override a negative latest result.
+- If an action's latest full-orientation gain is negative, normally switch to
+  a different contact group instead of immediately repeating it. This remains
+  advice: every action stays legal.
+- When the current orientation is close to the best state reached in this
+  episode, preserve that progress: prefer a sphere_micro action, stabilization,
+  or a small contact adjustment over a large-orientation escape.
+- If regression_from_best_rad exceeds 0.15, treat recovery of the lost
+  orientation as the immediate priority. Avoid repeating the action/contact
+  group that caused the latest regression; use recent per-axis gains to choose
+  a smaller corrective action. This is advisory and does not remove choices.
 - For each XYZ component, a useful measured gain normally has the same sign
   as the current signed error component. Compare the episode statistics and
   prefer actions that improve the largest-magnitude component without making
@@ -331,7 +344,7 @@ def action_guidance(name: str) -> Dict[str, str]:
         return {
             "category": "sphere_large_orientation_escape",
             "use_when": "full orientation error is very large or recent motions stalled",
-            "avoid_when": "position is unstable or a smaller correction is sufficient",
+            "avoid_when": "near the episode best, position is unstable, or a smaller correction is sufficient",
             "suggested_scenario": "large sphere orientation escape",
         }
     if name.startswith("sphere_y_"):
@@ -481,6 +494,27 @@ def build_action_stats(history: List[Dict[str, Any]]) -> Dict[str, Any]:
         previous_drift = current_drift
 
     stats: Dict[str, Any] = {}
+    best_rot_dist = min((
+        float(item.get("rot_dist_after_rad", item.get("rot_dist_rad", 99.0)))
+        for item in history
+    ), default=None)
+    current_rot_dist = (float(history[-1].get(
+        "rot_dist_after_rad", history[-1].get("rot_dist_rad", 99.0)))
+        if history else None)
+    if best_rot_dist is not None and current_rot_dist is not None:
+        best_index = min(
+            range(len(history)),
+            key=lambda index: float(history[index].get(
+                "rot_dist_after_rad",
+                history[index].get("rot_dist_rad", 99.0))))
+        stats["_episode_context"] = {
+            "best_rot_dist_rad": round(best_rot_dist, 4),
+            "current_rot_dist_rad": round(current_rot_dist, 4),
+            "regression_from_best_rad": round(
+                current_rot_dist - best_rot_dist, 4),
+            "cycles_since_best": len(history) - 1 - best_index,
+            "near_episode_best": current_rot_dist <= best_rot_dist + 0.1,
+        }
     for choice, samples in grouped.items():
         items = [sample[0] for sample in samples]
         position_gains = [sample[1] for sample in samples]
@@ -496,6 +530,18 @@ def build_action_stats(history: List[Dict[str, Any]]) -> Dict[str, Any]:
         recent_items = items[-3:]
         recent_rotation_gains = rotation_gains[-3:]
         recent_axis_gains = axis_gains[-3:]
+        recent_weights = list(range(1, len(recent_rotation_gains) + 1))
+        recent_weighted_gain = sum(
+            weight * gain for weight, gain in zip(
+                recent_weights, recent_rotation_gains)) / sum(recent_weights)
+        recent_negative_streak = 0
+        for gain in reversed(rotation_gains):
+            if gain >= 0.0:
+                break
+            recent_negative_streak += 1
+        last_history_index = max(
+            index for index, history_item in enumerate(history)
+            if history_item.get("choice") == choice)
         consecutive_recent_uses = 0
         for history_item in reversed(history):
             if history_item.get("choice") != choice:
@@ -512,6 +558,11 @@ def build_action_stats(history: List[Dict[str, Any]]) -> Dict[str, Any]:
             "last_rot_dist_gain_rad": round(rotation_gains[-1], 4),
             "recent3_mean_rot_dist_gain_rad": round(
                 sum(recent_rotation_gains) / len(recent_rotation_gains), 4),
+            "recent_weighted_rot_dist_gain_rad": round(
+                recent_weighted_gain, 4),
+            "last_use_harmful": rotation_gains[-1] < 0.0,
+            "recent_negative_streak": recent_negative_streak,
+            "cycles_since_last_use": len(history) - 1 - last_history_index,
             "rot_dist_gain_trend": round(
                 rotation_gains[-1] - rotation_gains[-2], 4)
                 if len(rotation_gains) >= 2 else None,

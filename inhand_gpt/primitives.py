@@ -1283,6 +1283,23 @@ register(Primitive(
                 "pairs maintain a light flexion bias.",
     tags=["sphere", "orientation", "y_axis_probe", "directional"],
 ))
+
+# Low-amplitude versions of the directional thumb arcs.  They preserve the
+# exact phase/contact sequence while reducing every command to 35 percent.
+for _source_name, _micro_name in (
+        ("sphere_y_thumb_arc_a", "sphere_micro_thumb_arc_a"),
+        ("sphere_y_thumb_arc_b", "sphere_micro_thumb_arc_b")):
+    _source_primitive = get(_source_name)
+    register(Primitive(
+        name=_micro_name,
+        n_steps=_source_primitive.n_steps,
+        action_fn=(lambda t, source=_source_primitive:
+                   0.35 * source.action(t)),
+        description=(
+            "Run the same staged thumb-arc contact sequence as its full "
+            "counterpart with every joint command scaled to 35 percent."),
+        tags=["sphere", "orientation", "micro", "directional"],
+    ))
 register(Primitive(
     name="sphere_y_contact_transfer_a", n_steps=24,
     action_fn=_staged([
@@ -1397,4 +1414,9 @@ SPHERE_PRIMITIVE_NAMES = {
     # complementary orientation/contact motions.
     "tilt_wrj0_reseat_a", "wrist_raise_reseat",
     "recenter_forefinger_side", "sphere_double_little_finger_cycle",
+    # Low-amplitude bidirectional XYZ and thumb-contact corrections.
+    "sphere_micro_x_a", "sphere_micro_x_b",
+    "sphere_micro_y_a", "sphere_micro_y_b",
+    "sphere_micro_z_a", "sphere_micro_z_b",
+    "sphere_micro_thumb_arc_a", "sphere_micro_thumb_arc_b",
 }
