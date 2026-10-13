@@ -25,7 +25,7 @@ from inhand_gpt.loop import run_episode
 from inhand_gpt.policy import GPTPolicy, PolicyError, RuleBaselinePolicy
 from inhand_gpt.record import Recorder
 from run_sim import (MAX_OBJECT_SCALE, MAX_SPHERE_SCALE, VideoWriter,
-                     build_env, object_scale_arg)
+                     build_env, object_friction_arg, object_scale_arg)
 
 
 BLOCK_PRESETS = (
@@ -140,9 +140,11 @@ class LimitedPolicy:
         raise AssertionError("unreachable")
 
 
-def reference_state(seed: int, object_scale: float, object_shape: str):
+def reference_state(seed: int, object_scale: float, object_shape: str,
+                    object_friction: float | None = None):
     env = build_env(seed, need_video=False, object_scale=object_scale,
-                    object_shape=object_shape)
+                    object_shape=object_shape,
+                    object_friction=object_friction)
     try:
         obs, _ = env.reset(seed=seed)
         return (
@@ -161,7 +163,8 @@ def run_panel(panel: str, offset: tuple[float, float, float], label: str,
               output_dir: Path) -> dict[str, Any]:
     env_base = build_env(args.seed, need_video=True,
                          object_scale=args.object_scale,
-                         object_shape=args.object_shape)
+                         object_shape=args.object_shape,
+                         object_friction=args.object_friction)
     offset_quat = euler_xyz_quat_deg(offset)
     block_quat = quat_mul(offset_quat, initial_quat)
     block_quat /= np.linalg.norm(block_quat)
@@ -180,6 +183,11 @@ def run_panel(panel: str, offset: tuple[float, float, float], label: str,
         "shared_target_goal": target_goal.tolist(),
         "object_scale": args.object_scale,
         "object_shape": args.object_shape,
+        "object_friction": [
+            round(float(value), 8) for value in
+            env.unwrapped.model.geom("object").friction],
+        "object_sliding_friction_overridden": (
+            args.object_friction is not None),
         "four_hand_run": True,
         "lock_error_deg": args.lock_error_deg,
         "primitive_chunk_steps": args.primitive_chunk_steps,
@@ -310,6 +318,10 @@ def main() -> int:
         "--object-shape", choices=["block", "sphere"], default="block")
     parser.add_argument("--deadband", type=float, default=5.0)
     parser.add_argument("--object-scale", type=object_scale_arg, default=1.03)
+    parser.add_argument(
+        "--object-friction", type=object_friction_arg, default=None,
+        help=("object sliding friction coefficient; omitted keeps the "
+              "environment default"))
     parser.add_argument("--api-concurrency", type=int, default=1)
     parser.add_argument("--api-timeout", type=float, default=600.0)
     parser.add_argument("--api-retries", type=int, default=2)
@@ -338,7 +350,8 @@ def main() -> int:
     output_dir = Path(args.export_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     initial_pos, initial_quat, target_goal = reference_state(
-        args.seed, args.object_scale, args.object_shape)
+        args.seed, args.object_scale, args.object_shape,
+        args.object_friction)
     presets = (SPHERE_PRESETS if args.object_shape == "sphere"
                else BLOCK_PRESETS)
     semaphore = threading.Semaphore(args.api_concurrency)
@@ -370,6 +383,7 @@ def main() -> int:
         "seed": args.seed,
         "execution_mode": args.execution_mode,
         "object_shape": args.object_shape,
+        "object_friction": args.object_friction,
         "preset_table": ("sphere_xyz_v1" if args.object_shape == "sphere"
                          else "block_xyz_v1"),
         "shared_target_goal": target_goal.tolist(),

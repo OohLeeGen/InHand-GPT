@@ -8,6 +8,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -67,9 +68,19 @@ def object_scale_arg(value: str) -> float:
     return scale
 
 
+def object_friction_arg(value: str) -> float:
+    """Argparse validator for MuJoCo's object sliding friction coefficient."""
+    friction = float(value)
+    if not math.isfinite(friction) or friction < 0.0:
+        raise argparse.ArgumentTypeError(
+            "object friction must be a finite non-negative value")
+    return friction
+
+
 def build_env(seed: int, need_video: bool,
               object_scale: float = DEFAULT_OBJECT_SCALE,
-              object_shape: str = "block"):
+              object_shape: str = "block",
+              object_friction: float | None = None):
     env = gym.make(
         ENV_ID,
         render_mode="rgb_array" if need_video else None,
@@ -104,6 +115,11 @@ def build_env(seed: int, need_video: bool,
         model.body("object").inertia[:] = inertia
     else:
         raise ValueError(f"unknown object shape: {object_shape}")
+    if object_friction is not None:
+        # MuJoCo geom friction is [sliding, torsional, rolling].  Expose only
+        # sliding friction here; retain the environment's calibrated torsional
+        # and rolling coefficients.
+        model.geom("object").friction[0] = object_friction
     return env
 
 
@@ -127,6 +143,10 @@ def main() -> int:
     ap.add_argument(
         "--object-scale", type=object_scale_arg, default=DEFAULT_OBJECT_SCALE,
         help="object linear scale, 1.00-1.15 (sphere base diameter: 5 cm)")
+    ap.add_argument(
+        "--object-friction", type=object_friction_arg, default=None,
+        help=("object sliding friction coefficient; omitted keeps the "
+              "environment default"))
     ap.add_argument("--video", type=str, default=None, help="mp4 path (episode 1 only)")
     ap.add_argument("--export", type=str, default=None, help="json export path")
     ap.add_argument("--dry-run", action="store_true",
@@ -157,7 +177,8 @@ def main() -> int:
         video_path = args.video if (args.video and ep == 0) else None
         env = build_env(
             seed, need_video=video_path is not None,
-            object_scale=args.object_scale, object_shape=args.object_shape)
+            object_scale=args.object_scale, object_shape=args.object_shape,
+            object_friction=args.object_friction)
 
         vw = VideoWriter(video_path) if video_path else None
 
@@ -175,6 +196,11 @@ def main() -> int:
                           2.0 * object_half_size, 4)
         recorder.meta["object_mass_kg"] = round(
             float(env.unwrapped.model.body("object").mass[0]), 6)
+        recorder.meta["object_friction"] = [
+            round(float(value), 8)
+            for value in env.unwrapped.model.geom("object").friction]
+        recorder.meta["object_sliding_friction_overridden"] = (
+            args.object_friction is not None)
         recorder.meta["lock_error_deg"] = args.lock_error_deg
         recorder.meta["primitive_chunk_steps"] = args.primitive_chunk_steps
         if args.policy == "gpt":
