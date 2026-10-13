@@ -12,6 +12,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import base64
+import io
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
@@ -206,6 +208,54 @@ Reply with ONLY a JSON object, no markdown, no extra text:
   "follows_rules": true}}
 """
 
+VISION_PROMPT_TEMPLATE = """You are the high-level visual decision policy for a
+Shadow Dexterous Hand performing in-hand reorientation of a marked {object_shape}.
+
+You receive two or three images after this text:
+1. CURRENT VIEW: the hand and object's present visual state.
+2. TARGET REFERENCE: the desired marked-object orientation rendered from the
+   same camera. Compare visible markings and pose; do not assume access to
+   simulator coordinates, quaternion state, exact XYZ errors, contact forces,
+   or ground-truth action gains.
+3. PREVIOUS DECISION VIEW (from cycle 1 onward): the current-view image that
+   preceded the last selected action. Compare it with CURRENT VIEW to judge
+   that action's visible effect.
+
+Pick exactly ONE motion primitive from the full anonymous menu. Execution is
+closed-loop and chunked. Selecting the same action continues an unfinished
+waveform; selecting another action replaces it. The evaluator will stop the
+episode automatically when the hidden ground-truth tolerance is reached, so
+do not return finish in visual mode.
+
+Cycle metadata without simulator truth (JSON):
+{observation}
+
+Recent action/execution history without outcome truth (oldest first, JSON):
+{history}
+
+Visual-mode action usage statistics (JSON):
+{action_stats}
+
+Untried actions (JSON):
+{untried_actions}
+
+Primitive menu (JSON):
+{menu}
+
+Important:
+- Internal primitive names are hidden. Joint directions describe actuator
+  motion only and do not guarantee an object rotation direction.
+- Infer progress only by comparing CURRENT VIEW with TARGET REFERENCE and by
+  observing visible changes across decisions.
+- Avoid repeatedly selecting one action when the visible pose is not changing.
+- Near a visual match, prefer low-amplitude micro actions or hold.
+- Every listed action is legal; use_when and avoid_when are advice only.
+
+Reply with ONLY a JSON object, no markdown, no extra text:
+{{"choice": "<anonymous action name>", "rationale": "<one sentence based only on visible evidence>",
+  "follows_rules": true}}
+"""
+
 
 def build_messages(obs: Dict[str, Any], history: List[Dict[str, Any]],
                    menu: List[Dict[str, Any]], model: str,
@@ -225,6 +275,61 @@ def build_messages(obs: Dict[str, Any], history: List[Dict[str, Any]],
     return [
         {"role": "system", "content": "You are a careful robot control policy. Always answer with strict JSON."},
         {"role": "user", "content": prompt},
+    ]
+
+
+def _frame_data_url(frame: Any, max_size: int = 512) -> str:
+    """Encode an RGB simulator frame as a compact JPEG data URL."""
+    from PIL import Image
+    image = Image.fromarray(frame).convert("RGB")
+    image.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", quality=85, optimize=True)
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/jpeg;base64,{encoded}"
+
+
+def build_vision_messages(
+        obs: Dict[str, Any], history: List[Dict[str, Any]],
+        menu: List[Dict[str, Any]], action_stats: Dict[str, Any],
+        untried_actions: List[str], visual_frames: List[Any]
+) -> List[Dict[str, Any]]:
+    if len(visual_frames) not in (2, 3):
+        raise PolicyError(
+            "vision mode requires current/target and optional previous frames")
+    safe_obs = {
+        "cycle": obs.get("cycle"),
+        "object_shape": obs.get("object_shape"),
+        "observation_mode": "vision",
+    }
+    prompt = VISION_PROMPT_TEMPLATE.format(
+        object_shape=obs.get("object_shape", "object"),
+        observation=json.dumps(safe_obs, ensure_ascii=False),
+        history=json.dumps(history[-5:], ensure_ascii=False),
+        action_stats=json.dumps(action_stats, ensure_ascii=False),
+        untried_actions=json.dumps(untried_actions, ensure_ascii=False),
+        menu=json.dumps(menu, ensure_ascii=False),
+    )
+    content = [
+        {"type": "text", "text": prompt},
+        {"type": "text", "text": "CURRENT VIEW:"},
+        {"type": "image_url", "image_url": {
+            "url": _frame_data_url(visual_frames[0])}},
+        {"type": "text", "text": "TARGET REFERENCE:"},
+        {"type": "image_url", "image_url": {
+            "url": _frame_data_url(visual_frames[1])}},
+    ]
+    if len(visual_frames) == 3:
+        content.extend([
+            {"type": "text", "text": "PREVIOUS DECISION VIEW:"},
+            {"type": "image_url", "image_url": {
+                "url": _frame_data_url(visual_frames[2])}},
+        ])
+    return [
+        {"role": "system", "content": (
+            "You are a careful vision-based robot control policy. "
+            "Always answer with strict JSON.")},
+        {"role": "user", "content": content},
     ]
 
 
@@ -592,6 +697,31 @@ def build_action_stats(history: List[Dict[str, Any]]) -> Dict[str, Any]:
     return stats
 
 
+def build_visual_action_stats(history: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Usage-only memory; deliberately contains no simulator outcome truth."""
+    stats: Dict[str, Any] = {}
+    for index, item in enumerate(history):
+        choice = item.get("choice")
+        if not isinstance(choice, str):
+            continue
+        entry = stats.setdefault(choice, {
+            "uses": 0, "cycles_since_last_use": 0,
+            "consecutive_recent_uses": 0,
+        })
+        entry["uses"] += 1
+        entry["cycles_since_last_use"] = len(history) - 1 - index
+    if history:
+        last_choice = history[-1].get("choice")
+        consecutive = 0
+        for item in reversed(history):
+            if item.get("choice") != last_choice:
+                break
+            consecutive += 1
+        if last_choice in stats:
+            stats[last_choice]["consecutive_recent_uses"] = consecutive
+    return stats
+
+
 def parse_gpt_response(content: str, valid_choices: List[str]) -> Dict[str, Any]:
     """Parse + validate a GPT reply. Pure function (offline-testable).
 
@@ -659,7 +789,7 @@ class GPTPolicy(Policy):
         return [m["name"] for m in menu] + ["finish"]
 
     def choose(self, obs: Dict[str, Any], history: List[Dict[str, Any]],
-               menu: List[Dict[str, Any]]) -> Dict[str, str]:
+               menu: List[Dict[str, Any]], visual_frames=None) -> Dict[str, str]:
         prompt_history, prompt_menu, name_by_alias = anonymize_action_interface(
             history, menu)
         selection_mode = "uniform_full_menu"
@@ -667,23 +797,50 @@ class GPTPolicy(Policy):
         wrist_lower_action = next((
             alias for alias, name in name_by_alias.items()
             if name == "wrist_lower_reseat"), "not available")
-        action_stats = build_action_stats(prompt_history)
+        vision_mode = visual_frames is not None
+        if vision_mode:
+            allowed_history_keys = {
+                "cycle", "choice", "primitive_total_steps",
+                "primitive_step_start", "primitive_step_end",
+                "primitive_completed", "primitive_steps_remaining",
+                "continued_previous_primitive", "replaced_incomplete_primitive",
+            }
+            prompt_history = [
+                {key: value for key, value in item.items()
+                 if key in allowed_history_keys}
+                for item in prompt_history
+            ]
+            action_stats = build_visual_action_stats(prompt_history)
+        else:
+            action_stats = build_action_stats(prompt_history)
         tried = set(action_stats)
         untried_actions = [
             item["name"] for item in prompt_menu if item["name"] not in tried
         ]
-        messages = build_messages(
-            obs, prompt_history, prompt_menu, self.model,
-            selection_mode=selection_mode,
-            action_stats=action_stats,
-            untried_actions=untried_actions,
-            wrist_lower_action=wrist_lower_action,
-        )
+        if vision_mode:
+            messages = build_vision_messages(
+                obs, prompt_history, prompt_menu, action_stats,
+                untried_actions, visual_frames)
+        else:
+            messages = build_messages(
+                obs, prompt_history, prompt_menu, self.model,
+                selection_mode=selection_mode,
+                action_stats=action_stats,
+                untried_actions=untried_actions,
+                wrist_lower_action=wrist_lower_action,
+            )
         if self.dry_run:
             print("=== GPT dry-run: request NOT sent. Full prompt follows ===")
             for m in messages:
                 print(f"--- [{m['role']}] ---")
-                print(m["content"])
+                if isinstance(m["content"], list):
+                    for part in m["content"]:
+                        if part.get("type") == "image_url":
+                            print("[image/jpeg data omitted]")
+                        else:
+                            print(part.get("text", ""))
+                else:
+                    print(m["content"])
             print("=== end of dry-run prompt ===")
             return {
                 "choice": "finish", "rationale": "dry-run: no request sent",
@@ -702,7 +859,9 @@ class GPTPolicy(Policy):
             "response_format": {"type": "json_object"},
         }
         headers = {"Authorization": f"Bearer {self.api_key}"}
-        valid_choices = [item["name"] for item in prompt_menu] + ["finish"]
+        valid_choices = [item["name"] for item in prompt_menu]
+        if not vision_mode:
+            valid_choices.append("finish")
         try:
             resp = httpx.post(
                 f"{self.api_base}/chat/completions",

@@ -25,7 +25,8 @@ from inhand_gpt.loop import run_episode
 from inhand_gpt.policy import GPTPolicy, PolicyError, RuleBaselinePolicy
 from inhand_gpt.record import Recorder
 from run_sim import (MAX_OBJECT_SCALE, MAX_SPHERE_SCALE, VideoWriter,
-                     build_env, object_friction_arg, object_scale_arg)
+                     build_env, object_friction_arg, object_scale_arg,
+                     render_target_reference)
 
 
 BLOCK_PRESETS = (
@@ -188,6 +189,8 @@ def run_panel(panel: str, offset: tuple[float, float, float], label: str,
             env.unwrapped.model.geom("object").friction],
         "object_sliding_friction_overridden": (
             args.object_friction is not None),
+        "observation_mode": args.observation_mode,
+        "agent_receives_simulator_truth": args.observation_mode == "state",
         "four_hand_run": True,
         "lock_error_deg": args.lock_error_deg,
         "primitive_chunk_steps": args.primitive_chunk_steps,
@@ -199,10 +202,18 @@ def run_panel(panel: str, offset: tuple[float, float, float], label: str,
             "action_names_anonymized": True,
             "action_interface": "anonymous_name_with_kinematic_description",
             "action_selection": "uniform_full_menu_chunked_v1",
-            "memory_mode": "recent5_plus_local_recent3_xyz_effect_stats",
+            "memory_mode": (
+                "recent5_action_execution_plus_usage_counts_no_state_truth"
+                if args.observation_mode == "vision" else
+                "recent5_plus_local_recent3_xyz_effect_stats"),
         })
     panel_video = output_dir / f"hand_{panel.lower()}.mp4"
     writer = VideoWriter(str(panel_video), fps=args.fps)
+
+    target_frame = None
+    if args.observation_mode == "vision":
+        with render_lock:
+            target_frame = render_target_reference(env, args.seed)
 
     def frame_fn():
         # GLFW context creation/rendering is not concurrently thread-safe on
@@ -221,7 +232,9 @@ def run_panel(panel: str, offset: tuple[float, float, float], label: str,
             recorder=recorder, frame_fn=frame_fn, verbose=not args.quiet,
             lock_error_deg=args.lock_error_deg,
             primitive_chunk_steps=args.primitive_chunk_steps,
-            object_shape=args.object_shape)
+            object_shape=args.object_shape,
+            observation_mode=args.observation_mode,
+            target_reference_frame=target_frame)
     except PolicyError as exc:
         api_error = str(exc)
         last = recorder.cycles[-1] if recorder.cycles else {}
@@ -316,6 +329,9 @@ def main() -> int:
     parser.add_argument("--max-cycles", type=int, default=50)
     parser.add_argument(
         "--object-shape", choices=["block", "sphere"], default="block")
+    parser.add_argument(
+        "--observation-mode", choices=["state", "vision"], default="state",
+        help="GPT input: simulator state values or current/target RGB images")
     parser.add_argument("--deadband", type=float, default=5.0)
     parser.add_argument("--object-scale", type=object_scale_arg, default=1.03)
     parser.add_argument(
@@ -336,6 +352,8 @@ def main() -> int:
         parser.error(
             f"block object scale must not exceed {MAX_OBJECT_SCALE:.2f}; "
             f"sphere scale may be up to {MAX_SPHERE_SCALE:.2f}")
+    if args.observation_mode == "vision" and args.policy != "gpt":
+        parser.error("--observation-mode vision requires --policy gpt")
     if not 1 <= args.api_concurrency <= 4:
         parser.error("--api-concurrency must be between 1 and 4")
     if args.api_timeout <= 0:
@@ -383,6 +401,8 @@ def main() -> int:
         "seed": args.seed,
         "execution_mode": args.execution_mode,
         "object_shape": args.object_shape,
+        "observation_mode": args.observation_mode,
+        "agent_receives_simulator_truth": args.observation_mode == "state",
         "object_friction": args.object_friction,
         "preset_table": ("sphere_xyz_v1" if args.object_shape == "sphere"
                          else "block_xyz_v1"),

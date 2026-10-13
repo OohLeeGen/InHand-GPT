@@ -26,13 +26,18 @@ def run_episode(
     lock_error_deg: float = 2.0,
     primitive_chunk_steps: int = 6,
     object_shape: str = "block",
+    observation_mode: str = "state",
+    target_reference_frame: Optional[np.ndarray] = None,
 ) -> Dict[str, Any]:
     """Run one episode. Returns the summary dict (also stored on recorder)."""
     obs, _ = env.reset(seed=seed)
     initial_pos, _ = block_pose(env)
+    current_frame = None
+    previous_decision_frame = None
     if frame_fn is not None:
-        frame_fn()  # ensure the video has at least one frame even if the
-                    # policy finishes at cycle 0 without executing a primitive
+        current_frame = frame_fn()  # video seed and visual current view
+    if observation_mode == "vision" and target_reference_frame is None:
+        raise ValueError("vision mode requires a target reference frame")
     t0 = time.time()
 
     history: List[Dict[str, Any]] = []
@@ -70,7 +75,17 @@ def run_episode(
                 "follows_rules": True,
             }
         elif policy.name == "gpt":
-            decision = policy.choose(obs_pack, history, menu)  # type: ignore[arg-type]
+            visual_frames = None
+            if observation_mode == "vision":
+                visual_frames = [current_frame, target_reference_frame]
+                if previous_decision_frame is not None:
+                    visual_frames.append(previous_decision_frame)
+            if observation_mode == "vision" and current_frame is None:
+                raise RuntimeError("vision mode could not render current frame")
+            decision = policy.choose(  # type: ignore[arg-type]
+                obs_pack, history, menu, visual_frames=visual_frames)
+            if observation_mode == "vision":
+                previous_decision_frame = current_frame.copy()
         else:
             decision = policy.choose(obs_pack, history)
         choice = decision["choice"]
@@ -125,7 +140,9 @@ def run_episode(
             action = prim.action(t)
             obs, _, terminated, truncated, _ = env.step(action)
             if frame_fn is not None:
-                frame_fn()
+                rendered = frame_fn()
+                if rendered is not None:
+                    current_frame = rendered
             if terminated or truncated:
                 break
         primitive_completed = primitive_step_end >= prim.n_steps

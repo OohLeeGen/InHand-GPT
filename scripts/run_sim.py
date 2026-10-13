@@ -123,6 +123,31 @@ def build_env(seed: int, need_video: bool,
     return env
 
 
+def render_target_reference(env, seed: int):
+    """Render the desired object pose without exposing its state to the policy."""
+    import mujoco
+    obs, _ = env.reset(seed=seed)
+    u = env.unwrapped
+    saved_qpos = u.data.qpos.copy()
+    saved_qvel = u.data.qvel.copy()
+    joint_id = u.model.joint("object:joint").id
+    qpos_address = int(u.model.jnt_qposadr[joint_id])
+    dof_address = int(u.model.jnt_dofadr[joint_id])
+    target = obs["desired_goal"]
+    u.data.qpos[qpos_address:qpos_address + 3] = target[:3]
+    u.data.qpos[qpos_address + 3:qpos_address + 7] = target[3:7]
+    u.data.qvel[dof_address:dof_address + 6] = 0.0
+    mujoco.mj_forward(u.model, u.data)
+    frame = env.render()
+    reference = None if frame is None else frame.copy()
+    u.data.qpos[:] = saved_qpos
+    u.data.qvel[:] = saved_qvel
+    mujoco.mj_forward(u.model, u.data)
+    if reference is None:
+        raise RuntimeError("failed to render target reference image")
+    return reference
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="InHand-GPT sim loop")
     ap.add_argument("--policy", choices=["baseline", "gpt"], default="baseline")
@@ -132,6 +157,9 @@ def main() -> int:
     ap.add_argument(
         "--object-shape", choices=["block", "sphere"], default="block",
         help="manipulated object; sphere uses six coloured directional markings")
+    ap.add_argument(
+        "--observation-mode", choices=["state", "vision"], default="state",
+        help="GPT input: simulator state values or current/target RGB images")
     ap.add_argument(
         "--lock-error-deg", type=float, default=2.0,
         help="finish without another action when all XYZ errors are within this value")
@@ -156,6 +184,8 @@ def main() -> int:
     if args.object_shape == "block" and args.object_scale > MAX_OBJECT_SCALE:
         ap.error(f"block object scale must not exceed {MAX_OBJECT_SCALE:.2f}; "
                  f"sphere scale may be up to {MAX_SPHERE_SCALE:.2f}")
+    if args.observation_mode == "vision" and args.policy != "gpt":
+        ap.error("--observation-mode vision requires --policy gpt")
     if args.lock_error_deg <= 0:
         ap.error("--lock-error-deg must be positive")
     if args.primitive_chunk_steps < 1:
@@ -175,17 +205,22 @@ def main() -> int:
         seed = args.seed + ep
         suffix = f"seed{seed}" + (f"_ep{ep}" if args.episodes > 1 else "")
         video_path = args.video if (args.video and ep == 0) else None
+        need_render = video_path is not None or args.observation_mode == "vision"
         env = build_env(
-            seed, need_video=video_path is not None,
+            seed, need_video=need_render,
             object_scale=args.object_scale, object_shape=args.object_shape,
             object_friction=args.object_friction)
+
+        target_frame = (render_target_reference(env, seed)
+                        if args.observation_mode == "vision" else None)
 
         vw = VideoWriter(video_path) if video_path else None
 
         def frame_fn():
             frame = env.render()
-            if frame is not None:
+            if frame is not None and vw is not None:
                 vw.append(frame)
+            return frame
 
         recorder = Recorder(policy_name=policy.name, seed=seed, max_cycles=args.max_cycles)
         object_half_size = float(env.unwrapped.model.geom("object").size[0])
@@ -203,21 +238,28 @@ def main() -> int:
             args.object_friction is not None)
         recorder.meta["lock_error_deg"] = args.lock_error_deg
         recorder.meta["primitive_chunk_steps"] = args.primitive_chunk_steps
+        recorder.meta["observation_mode"] = args.observation_mode
+        recorder.meta["agent_receives_simulator_truth"] = (
+            args.observation_mode == "state")
         if args.policy == "gpt":
             recorder.meta["action_names_anonymized"] = True
             recorder.meta["action_interface"] = "anonymous_name_with_kinematic_description"
             recorder.meta["action_selection"] = "uniform_full_menu_chunked_v1"
             recorder.meta["memory_mode"] = (
+                "recent5_action_execution_plus_usage_counts_no_state_truth"
+                if args.observation_mode == "vision" else
                 "recent5_plus_local_recent3_xyz_effect_stats")
         try:
             summary = run_episode(
                 env, policy, max_cycles=args.max_cycles, seed=seed,
                 recorder=recorder,
-                frame_fn=frame_fn if vw else None,
+                frame_fn=(frame_fn if need_render else None),
                 verbose=not args.quiet,
                 lock_error_deg=args.lock_error_deg,
                 primitive_chunk_steps=args.primitive_chunk_steps,
                 object_shape=args.object_shape,
+                observation_mode=args.observation_mode,
+                target_reference_frame=target_frame,
             )
         finally:
             if vw:
