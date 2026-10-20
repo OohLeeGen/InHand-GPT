@@ -18,8 +18,14 @@ import gymnasium as gym
 import gymnasium_robotics  # noqa: F401
 
 from inhand_gpt.loop import run_episode
-from inhand_gpt.policy import GPTPolicy, PolicyError, RuleBaselinePolicy
+from inhand_gpt.policy import (
+    AGENT_CHOICES, GPTPolicy, PolicyError, RuleBaselinePolicy,
+)
 from inhand_gpt.record import Recorder
+from inhand_gpt.visual_demo import (
+    run_sphere_visual_atlas,
+    run_visual_action_demos,
+)
 
 ENV_ID = "HandManipulateBlockRotateZ-v1"
 DEFAULT_OBJECT_SCALE = 1.07
@@ -151,6 +157,9 @@ def render_target_reference(env, seed: int):
 def main() -> int:
     ap = argparse.ArgumentParser(description="InHand-GPT sim loop")
     ap.add_argument("--policy", choices=["baseline", "gpt"], default="baseline")
+    ap.add_argument(
+        "--agent", choices=AGENT_CHOICES, default="kimi-k3",
+        help="LLM backend used when --policy gpt")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--episodes", type=int, default=1)
     ap.add_argument("--max-cycles", type=int, default=25)
@@ -160,6 +169,12 @@ def main() -> int:
     ap.add_argument(
         "--observation-mode", choices=["state", "vision"], default="state",
         help="GPT input: simulator state values or current/target RGB images")
+    ap.add_argument(
+        "--visual-demo-repetitions", type=int, default=0,
+        help="target-free visual pretrial; use 15 to run every action 15 times")
+    ap.add_argument(
+        "--visual-demo-dir", type=str, default=None,
+        help="directory for visual-demo contact sheets and Agent notebook")
     ap.add_argument(
         "--lock-error-deg", type=float, default=2.0,
         help="finish without another action when all XYZ errors are within this value")
@@ -186,6 +201,13 @@ def main() -> int:
                  f"sphere scale may be up to {MAX_SPHERE_SCALE:.2f}")
     if args.observation_mode == "vision" and args.policy != "gpt":
         ap.error("--observation-mode vision requires --policy gpt")
+    if args.visual_demo_repetitions not in (0, 15):
+        ap.error("--visual-demo-repetitions must be 0 or 15")
+    if args.visual_demo_repetitions:
+        if args.observation_mode != "vision" or args.policy != "gpt":
+            ap.error("visual demos require --policy gpt --observation-mode vision")
+        if args.dry_run:
+            ap.error("visual demos require real K3 summary calls; remove --dry-run")
     if args.lock_error_deg <= 0:
         ap.error("--lock-error-deg must be positive")
     if args.primitive_chunk_steps < 1:
@@ -195,10 +217,47 @@ def main() -> int:
         if args.policy == "baseline":
             policy = RuleBaselinePolicy(deadband_deg=args.deadband)
         else:
-            policy = GPTPolicy(dry_run=args.dry_run)
+            policy = GPTPolicy(dry_run=args.dry_run, agent=args.agent)
     except PolicyError as e:
         print(f"error: {e}")
         return 2
+
+    visual_action_notebook = None
+    sphere_visual_notebook = None
+    visual_demo_dir = None
+    if args.visual_demo_repetitions:
+        if args.visual_demo_dir:
+            visual_demo_dir = Path(args.visual_demo_dir)
+        elif args.export:
+            export_path = Path(args.export)
+            visual_demo_dir = export_path.with_name(
+                f"{export_path.stem}_visual_demos")
+        else:
+            visual_demo_dir = Path("runs") / f"visual_demos_seed{args.seed}"
+        if args.object_shape == "sphere":
+            atlas_env = build_env(
+                args.seed, need_video=True, object_scale=args.object_scale,
+                object_shape=args.object_shape,
+                object_friction=args.object_friction)
+            try:
+                sphere_visual_notebook = run_sphere_visual_atlas(
+                    atlas_env, policy, args.seed, visual_demo_dir)
+                policy.sphere_visual_notebook = sphere_visual_notebook
+            finally:
+                atlas_env.close()
+        # Start the action demonstrations with a fresh renderer so the GPU
+        # initializes from the calibration texture, not the formal atlas.
+        demo_env = build_env(
+            args.seed, need_video=True, object_scale=args.object_scale,
+            object_shape=args.object_shape,
+            object_friction=args.object_friction)
+        try:
+            visual_action_notebook = run_visual_action_demos(
+                demo_env, policy, args.object_shape, args.seed,
+                args.visual_demo_repetitions, visual_demo_dir)
+            policy.visual_action_notebook = visual_action_notebook
+        finally:
+            demo_env.close()
 
     results = []
     for ep in range(args.episodes):
@@ -241,9 +300,34 @@ def main() -> int:
         recorder.meta["observation_mode"] = args.observation_mode
         recorder.meta["agent_receives_simulator_truth"] = (
             args.observation_mode == "state")
+        recorder.meta["agent"] = (
+            policy.agent if args.policy == "gpt" else "baseline")
+        recorder.meta["api_protocol"] = (
+            policy.api_protocol if args.policy == "gpt" else None)
+        recorder.meta["model"] = (
+            policy.model if args.policy == "gpt" else None)
+        recorder.meta["visual_demo_repetitions_per_action"] = (
+            args.visual_demo_repetitions)
+        recorder.meta["visual_demo_dir"] = (
+            str(visual_demo_dir) if visual_demo_dir else None)
+        recorder.meta["visual_demo_surface"] = (
+            "black_white_asymmetric_calibration"
+            if (visual_action_notebook is not None and
+                args.object_shape == "sphere") else None)
+        recorder.meta["sphere_visual_notebook_enabled"] = (
+            sphere_visual_notebook is not None)
+        recorder.meta["sphere_visual_notebook"] = (
+            str(visual_demo_dir / "sphere_visual_notebook.json")
+            if sphere_visual_notebook is not None else None)
         if args.policy == "gpt":
             recorder.meta["action_names_anonymized"] = True
-            recorder.meta["action_interface"] = "anonymous_name_with_kinematic_description"
+            recorder.meta["action_interface"] = (
+                "anonymous_parameterized_analytic_primitive")
+            recorder.meta["amplitude_scale_choices"] = [
+                0.25, 0.5, 0.75, 1.0, 1.25]
+            if visual_action_notebook is not None:
+                recorder.meta["action_interface"] = (
+                    "anonymous_analytic_primitive_with_visual_demo_notebook")
             recorder.meta["action_selection"] = "uniform_full_menu_chunked_v1"
             recorder.meta["memory_mode"] = (
                 "recent5_action_execution_plus_usage_counts_no_state_truth"

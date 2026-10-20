@@ -13,6 +13,7 @@ from .primitives import menu as primitive_menu
 from .record import Recorder
 
 FrameFn = Optional[Callable[[], Optional[np.ndarray]]]
+CheckpointFn = Optional[Callable[[Dict[str, Any]], None]]
 
 
 def run_episode(
@@ -28,31 +29,84 @@ def run_episode(
     object_shape: str = "block",
     observation_mode: str = "state",
     target_reference_frame: Optional[np.ndarray] = None,
+    resume_state: Optional[Dict[str, Any]] = None,
+    checkpoint_fn: CheckpointFn = None,
 ) -> Dict[str, Any]:
     """Run one episode. Returns the summary dict (also stored on recorder)."""
     obs, _ = env.reset(seed=seed)
     initial_pos, _ = block_pose(env)
     current_frame = None
     previous_decision_frame = None
-    if frame_fn is not None:
+    if resume_state is not None:
+        import mujoco
+        u = env.unwrapped
+        u.data.qpos[:] = resume_state["qpos"]
+        u.data.qvel[:] = resume_state["qvel"]
+        if u.data.act.size and "act" in resume_state:
+            u.data.act[:] = resume_state["act"]
+        if "ctrl" in resume_state:
+            u.data.ctrl[:] = resume_state["ctrl"]
+        if "time" in resume_state:
+            u.data.time = float(resume_state["time"])
+        mujoco.mj_forward(u.model, u.data)
+        obs = u._get_obs()
+        initial_pos = np.asarray(resume_state["initial_pos"]).copy()
+        current_frame = resume_state.get("current_frame")
+        previous_decision_frame = resume_state.get(
+            "previous_decision_frame")
+    if frame_fn is not None and current_frame is None:
         current_frame = frame_fn()  # video seed and visual current view
     if observation_mode == "vision" and target_reference_frame is None:
         raise ValueError("vision mode requires a target reference frame")
     t0 = time.time()
 
-    history: List[Dict[str, Any]] = []
+    history: List[Dict[str, Any]] = (
+        list(resume_state.get("history", []))
+        if resume_state is not None else [])
     menu = primitive_menu(object_shape)
     outcome = "failure_max_cycles"
     final_obs = pack_observation(obs, initial_pos, cycle=0)
     final_obs["object_shape"] = object_shape
-    active_choice: Optional[str] = None
-    active_next_step = 0
+    active_choice: Optional[str] = (
+        resume_state.get("active_choice") if resume_state else None)
+    active_amplitude_scale = float(
+        resume_state.get("active_amplitude_scale", 1.0)
+        if resume_state else 1.0)
+    active_next_step = int(
+        resume_state.get("active_next_step", 0) if resume_state else 0)
+    start_cycle = int(resume_state.get("next_cycle", 0) if resume_state else 0)
 
-    if verbose:
+    def save_checkpoint(next_cycle: int) -> None:
+        if checkpoint_fn is None:
+            return
+        u = env.unwrapped
+        checkpoint_fn({
+            "next_cycle": next_cycle,
+            "qpos": u.data.qpos.copy(),
+            "qvel": u.data.qvel.copy(),
+            "act": u.data.act.copy(),
+            "ctrl": u.data.ctrl.copy(),
+            "time": float(u.data.time),
+            "initial_pos": np.asarray(initial_pos).copy(),
+            "history": history,
+            "active_choice": active_choice,
+            "active_amplitude_scale": active_amplitude_scale,
+            "active_next_step": active_next_step,
+            "current_frame": (None if current_frame is None
+                              else current_frame.copy()),
+            "previous_decision_frame": (
+                None if previous_decision_frame is None
+                else previous_decision_frame.copy()),
+        })
+
+    if verbose and start_cycle == 0:
         print(f"[seed {seed}] initial err={final_obs['err_deg']:+.2f}deg "
               f"rot_dist={final_obs['rot_dist_rad']:.3f}rad")
 
-    for cycle in range(max_cycles):
+    elif verbose:
+        print(f"[seed {seed}] resuming at cycle {start_cycle}/{max_cycles}")
+
+    for cycle in range(start_cycle, max_cycles):
         obs_pack = pack_observation(obs, initial_pos, cycle)
         obs_pack["object_shape"] = object_shape
         # Use the requested strict three-axis tolerance instead of the
@@ -62,6 +116,10 @@ def run_episode(
         obs_pack["success"] = all(
             abs(float(value)) <= lock_error_deg
             for value in obs_pack["rotation_error_xyz_deg"])
+
+        # Persist the exact state before the network request. If all API
+        # retries fail, rerunning can continue this same undecided cycle.
+        save_checkpoint(cycle)
 
         if obs_pack["success"]:
             decision = {
@@ -89,6 +147,7 @@ def run_episode(
         else:
             decision = policy.choose(obs_pack, history)
         choice = decision["choice"]
+        amplitude_scale = float(decision.get("amplitude_scale", 1.0))
         err_before = obs_pack["err_deg"]
         rot_dist_before = obs_pack["rot_dist_rad"]
         tilt_before = obs_pack["tilt_error_deg"]
@@ -99,6 +158,7 @@ def run_episode(
             outcome = "success" if obs_pack["success"] else "failure_max_cycles"
             recorder.log_cycle({
                 "cycle": cycle, "choice": "finish", "rationale": decision["rationale"],
+                "amplitude_scale": 1.0,
                 "selection_mode": decision.get("selection_mode"),
                 "recommended_phase": decision.get("recommended_phase"),
                 "model_reported_phase": decision.get("model_reported_phase"),
@@ -123,7 +183,9 @@ def run_episode(
 
         prim = get_primitive(choice)
         continuing_primitive = (
-            choice == active_choice and active_next_step < prim.n_steps)
+            choice == active_choice and
+            abs(amplitude_scale - active_amplitude_scale) < 1e-9 and
+            active_next_step < prim.n_steps)
         primitive_step_start = active_next_step if continuing_primitive else 0
         # The legacy double little-finger primitive contains two independent
         # 30-step cycles.  Even when the caller requests a larger chunk, stop
@@ -137,7 +199,7 @@ def run_episode(
         replaced_incomplete_primitive = (
             active_choice is not None and not continuing_primitive)
         for t in range(primitive_step_start, primitive_step_end):
-            action = prim.action(t)
+            action = prim.action(t, amplitude_scale=amplitude_scale)
             obs, _, terminated, truncated, _ = env.step(action)
             if frame_fn is not None:
                 rendered = frame_fn()
@@ -148,9 +210,11 @@ def run_episode(
         primitive_completed = primitive_step_end >= prim.n_steps
         if primitive_completed or terminated or truncated:
             active_choice = None
+            active_amplitude_scale = 1.0
             active_next_step = 0
         else:
             active_choice = choice
+            active_amplitude_scale = amplitude_scale
             active_next_step = primitive_step_end
 
         after = pack_observation(obs, initial_pos, cycle)
@@ -170,6 +234,7 @@ def run_episode(
         record = {
             "cycle": cycle,
             "choice": choice,
+            "amplitude_scale": amplitude_scale,
             "rationale": decision["rationale"],
             "selection_mode": decision.get("selection_mode"),
             "recommended_phase": decision.get("recommended_phase"),
@@ -202,6 +267,7 @@ def run_episode(
         recorder.log_cycle(record)
         history.append({
             "cycle": cycle, "choice": choice,
+            "amplitude_scale": amplitude_scale,
             "selection_mode": decision.get("selection_mode"),
             "recommended_phase": decision.get("recommended_phase"),
             "follows_rules": decision.get("follows_rules"),
@@ -226,8 +292,10 @@ def run_episode(
             "replaced_incomplete_primitive": replaced_incomplete_primitive,
             "drift_xy_m": after["drift_xy_m"],
         })
+        save_checkpoint(cycle + 1)
         if verbose:
             print(f"[seed {seed}] cycle {cycle}: {choice:9s} "
+                  f"amp={amplitude_scale:.2f} "
                   f"err {err_before:+.2f} -> {after['err_deg']:+.2f}deg "
                   f"rot_dist={after['rot_dist_rad']:.3f}rad "
                   f"tilt={after['tilt_error_deg']:.1f}deg "

@@ -74,8 +74,30 @@ class Primitive:
     description: str = ""
     tags: List[str] = field(default_factory=list)
 
-    def action(self, t: int) -> np.ndarray:
-        return np.clip(self.action_fn(t), -1.0, 1.0).astype(np.float32)
+    def action(self, t: int, amplitude_scale: float = 1.0) -> np.ndarray:
+        """Compile the base waveform at an interpretable amplitude scale."""
+        return np.clip(
+            float(amplitude_scale) * self.action_fn(t), -1.0, 1.0
+        ).astype(np.float32)
+
+    def analytic_spec(self) -> Dict[str, object]:
+        """Compact numerical definition exposed to the high-level LLM."""
+        waveform = np.stack(
+            [self.action_fn(t) for t in range(self.n_steps)], axis=0)
+        ranges = {}
+        for index, joint in enumerate(ACTUATOR_NAMES):
+            low = float(np.min(waveform[:, index]))
+            high = float(np.max(waveform[:, index]))
+            if abs(low) > 1e-9 or abs(high) > 1e-9:
+                ranges[joint] = [round(low, 4), round(high, 4)]
+        return {
+            "representation": (
+                "action[t,joint] = clip(amplitude_scale * "
+                "base_waveform[t,joint], -1, 1)"),
+            "base_steps": self.n_steps,
+            "nonzero_joint_base_ranges": ranges,
+            "amplitude_scale_choices": [0.25, 0.5, 0.75, 1.0, 1.25],
+        }
 
 
 def _pattern(
@@ -160,7 +182,7 @@ def get(name: str) -> Primitive:
     return PRIMITIVES[name]
 
 
-def menu(object_shape: str = "block") -> List[Dict[str, str]]:
+def menu(object_shape: str = "block") -> List[Dict[str, object]]:
     """Candidate menu handed to the GPT policy."""
     if object_shape == "block":
         allowed = globals().get("BLOCK_PRIMITIVE_NAMES", set(PRIMITIVES))
@@ -169,7 +191,8 @@ def menu(object_shape: str = "block") -> List[Dict[str, str]]:
     else:
         raise ValueError(f"unknown object shape: {object_shape}")
     return [
-        {"name": p.name, "description": p.description, "n_steps": p.n_steps}
+        {"name": p.name, "description": p.description,
+         "n_steps": p.n_steps, "analytic_spec": p.analytic_spec()}
         for p in PRIMITIVES.values() if p.name in allowed
     ]
 

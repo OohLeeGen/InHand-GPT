@@ -49,7 +49,7 @@ python scripts/run_sim.py --policy gpt --dry-run --seed 0 --max-cycles 1
 GPT 解析器离线自测：
 
 ```bash
-python -m inhand_gpt.policy     # 7/7 checks passed
+python -m inhand_gpt.policy     # 12/12 checks passed
 ```
 
 基元调参/验证：
@@ -59,19 +59,24 @@ python scripts/tune_primitives.py --scan all --seed 0          # 候选波形扫
 python scripts/tune_primitives.py --scan pkg --seeds 0 1 2 3 4 # 已固化基元库跨种子验证
 ```
 
-## GPT API key 配置（环境变量）
+## 双 Agent API 配置（环境变量）
 
-| 变量 | 默认 | 说明 |
+| Agent / 变量 | 默认 | 说明 |
 |---|---|---|
-| `INHAND_API_KEY` | （无） | **必需**；缺失时 GPT 策略立即报清晰错误退出（exit 2），**绝不静默回退规则基线**（研究完整性：日志里每个决策都可追溯到所声明的策略） |
-| `INHAND_API_BASE` | `https://api.openai.com/v1` | OpenAI 兼容端点 |
-| `INHAND_MODEL` | `gpt-6` | 模型名 |
+| Kimi / `INHAND_KIMI_API_KEY` | （无） | Kimi Code 密钥；兼容旧变量 `INHAND_API_KEY` |
+| Kimi / `INHAND_KIMI_API_BASE` | `https://api.kimi.com/coding/v1` | Chat Completions 端点 |
+| Kimi / `INHAND_KIMI_MODEL` | `k3` | 模型名 |
+| APIHY / `INHAND_APIHY_API_KEY` | （无） | APIHY 密钥；兼容 `APIHY_API_KEY` |
+| APIHY / `INHAND_APIHY_API_BASE` | `https://zgc.apihy.com/v1` | Responses 端点 |
+| APIHY / `INHAND_APIHY_MODEL` | `gpt-5.6-sol` | 模型名 |
 
-```bash
-export INHAND_API_KEY=sk-...
-# 可选：export INHAND_API_BASE=https://your-endpoint/v1 INHAND_MODEL=gpt-6
-python scripts/run_sim.py --policy gpt --seed 0 --max-cycles 25 --video runs/gpt0.mp4 --export runs/gpt0.json
+```powershell
+# 两套密钥可同时存在，每次运行通过 --agent 选择。
+python scripts/run_sim.py --policy gpt --agent kimi-k3 --seed 0 --max-cycles 25 --video runs/kimi0.mp4 --export runs/kimi0.json
+python scripts/run_sim.py --policy gpt --agent apihy-gpt --seed 0 --max-cycles 25 --video runs/apihy0.mp4 --export runs/apihy0.json
 ```
+
+所有实验 JSON、四手汇总、视觉 demo manifest 和断点均记录 Agent 身份；不同 Agent 的 demo 或断点不会被混用。任一后端缺少密钥或请求失败时均硬失败，绝不静默回退规则基线。
 
 ## 验收结果（2026-09-22 实测）
 

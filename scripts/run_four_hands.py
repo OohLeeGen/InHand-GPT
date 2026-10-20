@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 import threading
 import time
@@ -22,8 +23,16 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from inhand_gpt.loop import run_episode
-from inhand_gpt.policy import GPTPolicy, PolicyError, RuleBaselinePolicy
+from inhand_gpt.policy import (
+    AGENT_CHOICES, GPTPolicy, PolicyError, RuleBaselinePolicy,
+)
+from inhand_gpt.primitives import menu as primitive_menu
 from inhand_gpt.record import Recorder
+from inhand_gpt.visual_demo import (
+    _is_transient_error,
+    run_sphere_visual_atlas,
+    run_visual_action_demos,
+)
 from run_sim import (MAX_OBJECT_SCALE, MAX_SPHERE_SCALE, VideoWriter,
                      build_env, object_friction_arg, object_scale_arg,
                      render_target_reference)
@@ -46,6 +55,63 @@ SPHERE_PRESETS = (
     ("C", (-40.0, 35.0, -70.0), "X=-40 Y=+35 Z=-70 deg"),
     ("D", (-55.0, -70.0, 90.0), "X=-55 Y=-70 Z=+90 deg"),
 )
+
+
+def save_checkpoint(path: Path, state: dict[str, Any],
+                    recorder: Recorder) -> None:
+    """Atomically save MuJoCo, policy-history, and recorder state."""
+    metadata = {
+        "next_cycle": state["next_cycle"],
+        "time": state["time"],
+        "history": state["history"],
+        "active_choice": state["active_choice"],
+        "active_amplitude_scale": state["active_amplitude_scale"],
+        "active_next_step": state["active_next_step"],
+        "recorder_meta": recorder.meta,
+        "recorder_cycles": recorder.cycles,
+    }
+    arrays = {
+        "qpos": state["qpos"], "qvel": state["qvel"],
+        "act": state["act"], "ctrl": state["ctrl"],
+        "initial_pos": state["initial_pos"],
+        "current_frame": (state["current_frame"] if state["current_frame"]
+                          is not None else np.empty((0,), dtype=np.uint8)),
+        "previous_decision_frame": (
+            state["previous_decision_frame"]
+            if state["previous_decision_frame"] is not None
+            else np.empty((0,), dtype=np.uint8)),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("wb") as handle:
+        np.savez_compressed(
+            handle, metadata=json.dumps(metadata, ensure_ascii=False),
+            **arrays)
+    os.replace(temporary, path)
+
+
+def load_checkpoint(path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    with np.load(path, allow_pickle=False) as payload:
+        metadata = json.loads(str(payload["metadata"].item()))
+        current = payload["current_frame"].copy()
+        previous = payload["previous_decision_frame"].copy()
+        state = {
+            "next_cycle": int(metadata["next_cycle"]),
+            "time": float(metadata["time"]),
+            "history": metadata["history"],
+            "active_choice": metadata["active_choice"],
+            "active_amplitude_scale": float(
+                metadata.get("active_amplitude_scale", 1.0)),
+            "active_next_step": int(metadata["active_next_step"]),
+            "qpos": payload["qpos"].copy(),
+            "qvel": payload["qvel"].copy(),
+            "act": payload["act"].copy(),
+            "ctrl": payload["ctrl"].copy(),
+            "initial_pos": payload["initial_pos"].copy(),
+            "current_frame": current if current.size else None,
+            "previous_decision_frame": previous if previous.size else None,
+        }
+    return state, metadata
 
 
 def quat_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -126,15 +192,10 @@ class LimitedPolicy:
                 with self.semaphore:
                     return self.policy.choose(*args, **kwargs)
             except PolicyError as exc:
-                message = str(exc).lower()
-                transient = any(token in message for token in (
-                    "timed out", "time-out", "timeout", "connecterror",
-                    "connection", "unexpected_eof", "temporarily unavailable",
-                    "bad gateway", "gateway time-out", "gateway timeout",
-                    "502", "503", "504"))
-                if not transient or attempt >= self.retries:
+                if not _is_transient_error(exc) or attempt >= self.retries:
                     raise
-                delay = 2 * (attempt + 1)
+                delays = (10, 30, 60, 120, 240)
+                delay = delays[min(attempt, len(delays) - 1)]
                 print(f"warning: transient GPT API failure; retry "
                       f"{attempt + 1}/{self.retries} after {delay}s: {exc}")
                 time.sleep(delay)
@@ -161,7 +222,10 @@ def run_panel(panel: str, offset: tuple[float, float, float], label: str,
               args, initial_pos: np.ndarray, initial_quat: np.ndarray,
               target_goal: np.ndarray, api_semaphore: threading.Semaphore,
               render_lock: threading.Lock,
-              output_dir: Path) -> dict[str, Any]:
+              output_dir: Path,
+              visual_action_notebook: dict[str, Any] | None = None,
+              sphere_visual_notebook: dict[str, Any] | None = None
+              ) -> dict[str, Any]:
     env_base = build_env(args.seed, need_video=True,
                          object_scale=args.object_scale,
                          object_shape=args.object_shape,
@@ -173,10 +237,32 @@ def run_panel(panel: str, offset: tuple[float, float, float], label: str,
         env_base, initial_pos, block_quat, target_goal)
     policy = (RuleBaselinePolicy(deadband_deg=args.deadband)
               if args.policy == "baseline" else GPTPolicy(
-                  timeout_s=args.api_timeout))
+                  timeout_s=args.api_timeout,
+                  visual_action_notebook=visual_action_notebook,
+                  sphere_visual_notebook=sphere_visual_notebook,
+                  agent=args.agent))
     policy = LimitedPolicy(policy, api_semaphore, args.api_retries)
     recorder = Recorder(
         policy_name=policy.name, seed=args.seed, max_cycles=args.max_cycles)
+    checkpoint_path = output_dir / f"hand_{panel.lower()}_checkpoint.npz"
+    resume_state = None
+    if args.resume and checkpoint_path.exists():
+        resume_state, saved = load_checkpoint(checkpoint_path)
+        saved_agent = saved["recorder_meta"].get("agent")
+        if saved_agent not in (None, args.agent):
+            raise RuntimeError(
+                f"panel {panel} checkpoint belongs to agent "
+                f"{saved_agent!r}, not {args.agent!r}; use the matching "
+                "--agent or a different --export-dir")
+        if saved_agent is None and args.agent != "kimi-k3":
+            raise RuntimeError(
+                f"panel {panel} is a legacy checkpoint without agent "
+                "identity; it may only resume with --agent kimi-k3")
+        recorder.meta = saved["recorder_meta"]
+        recorder.meta["max_cycles"] = args.max_cycles
+        recorder.cycles = saved["recorder_cycles"]
+        print(f"panel {panel}: loaded checkpoint at cycle "
+              f"{resume_state['next_cycle']}/{args.max_cycles}")
     recorder.meta.update({
         "panel": panel,
         "initial_pose_label": label,
@@ -191,23 +277,45 @@ def run_panel(panel: str, offset: tuple[float, float, float], label: str,
             args.object_friction is not None),
         "observation_mode": args.observation_mode,
         "agent_receives_simulator_truth": args.observation_mode == "state",
+        "visual_demo_repetitions_per_action": args.visual_demo_repetitions,
+        "visual_demo_dir": (
+            str(output_dir / "visual_demos")
+            if args.visual_demo_repetitions else None),
+        "visual_demo_surface": (
+            "black_white_asymmetric_calibration"
+            if (visual_action_notebook is not None and
+                args.object_shape == "sphere") else None),
+        "sphere_visual_notebook_enabled": (
+            sphere_visual_notebook is not None),
         "four_hand_run": True,
         "lock_error_deg": args.lock_error_deg,
         "primitive_chunk_steps": args.primitive_chunk_steps,
         "api_timeout_s": args.api_timeout,
         "api_retries": args.api_retries,
+        "agent": policy.policy.agent if args.policy == "gpt" else "baseline",
+        "api_protocol": (
+            policy.policy.api_protocol if args.policy == "gpt" else None),
+        "model": policy.policy.model if args.policy == "gpt" else None,
+        "checkpoint_file": str(checkpoint_path),
+        "resumed_from_checkpoint": resume_state is not None,
     })
     if args.policy == "gpt":
         recorder.meta.update({
             "action_names_anonymized": True,
-            "action_interface": "anonymous_name_with_kinematic_description",
+            "action_interface": "anonymous_parameterized_analytic_primitive",
+            "amplitude_scale_choices": [0.25, 0.5, 0.75, 1.0, 1.25],
             "action_selection": "uniform_full_menu_chunked_v1",
             "memory_mode": (
                 "recent5_action_execution_plus_usage_counts_no_state_truth"
                 if args.observation_mode == "vision" else
                 "recent5_plus_local_recent3_xyz_effect_stats"),
         })
-    panel_video = output_dir / f"hand_{panel.lower()}.mp4"
+        if visual_action_notebook is not None:
+            recorder.meta["action_interface"] = (
+                "anonymous_analytic_primitive_with_visual_demo_notebook")
+    panel_video = output_dir / (
+        f"hand_{panel.lower()}_resume_{resume_state['next_cycle']}.mp4"
+        if resume_state is not None else f"hand_{panel.lower()}.mp4")
     writer = VideoWriter(str(panel_video), fps=args.fps)
 
     target_frame = None
@@ -234,7 +342,12 @@ def run_panel(panel: str, offset: tuple[float, float, float], label: str,
             primitive_chunk_steps=args.primitive_chunk_steps,
             object_shape=args.object_shape,
             observation_mode=args.observation_mode,
-            target_reference_frame=target_frame)
+            target_reference_frame=target_frame,
+            resume_state=resume_state,
+            checkpoint_fn=lambda state: save_checkpoint(
+                checkpoint_path, state, recorder))
+        if checkpoint_path.exists():
+            checkpoint_path.unlink()
     except PolicyError as exc:
         api_error = str(exc)
         last = recorder.cycles[-1] if recorder.cycles else {}
@@ -322,6 +435,9 @@ def main() -> int:
         description="Four independent hands with a shared target and 2x2 video")
     parser.add_argument("--policy", choices=["baseline", "gpt"], default="gpt")
     parser.add_argument(
+        "--agent", choices=AGENT_CHOICES, default="kimi-k3",
+        help="LLM backend used when --policy gpt")
+    parser.add_argument(
         "--execution-mode", choices=["parallel", "serial"],
         default="parallel",
         help="run four environments concurrently or complete A-D in order")
@@ -332,6 +448,9 @@ def main() -> int:
     parser.add_argument(
         "--observation-mode", choices=["state", "vision"], default="state",
         help="GPT input: simulator state values or current/target RGB images")
+    parser.add_argument(
+        "--visual-demo-repetitions", type=int, default=0,
+        help="target-free visual pretrial; use 15 to run every action 15 times")
     parser.add_argument("--deadband", type=float, default=5.0)
     parser.add_argument("--object-scale", type=object_scale_arg, default=1.03)
     parser.add_argument(
@@ -340,7 +459,10 @@ def main() -> int:
               "environment default"))
     parser.add_argument("--api-concurrency", type=int, default=1)
     parser.add_argument("--api-timeout", type=float, default=600.0)
-    parser.add_argument("--api-retries", type=int, default=2)
+    parser.add_argument("--api-retries", type=int, default=5)
+    parser.add_argument(
+        "--resume", action=argparse.BooleanOptionalAction, default=True,
+        help="resume API-interrupted panels and reuse completed visual demos")
     parser.add_argument("--lock-error-deg", type=float, default=2.0)
     parser.add_argument("--primitive-chunk-steps", type=int, default=6)
     parser.add_argument("--fps", type=int, default=25)
@@ -354,6 +476,12 @@ def main() -> int:
             f"sphere scale may be up to {MAX_SPHERE_SCALE:.2f}")
     if args.observation_mode == "vision" and args.policy != "gpt":
         parser.error("--observation-mode vision requires --policy gpt")
+    if args.visual_demo_repetitions not in (0, 15):
+        parser.error("--visual-demo-repetitions must be 0 or 15")
+    if (args.visual_demo_repetitions and
+            (args.observation_mode != "vision" or args.policy != "gpt")):
+        parser.error(
+            "visual demos require --policy gpt --observation-mode vision")
     if not 1 <= args.api_concurrency <= 4:
         parser.error("--api-concurrency must be between 1 and 4")
     if args.api_timeout <= 0:
@@ -367,6 +495,88 @@ def main() -> int:
 
     output_dir = Path(args.export_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    visual_action_notebook = None
+    sphere_visual_notebook = None
+    if args.visual_demo_repetitions:
+        demo_dir = output_dir / "visual_demos"
+        action_notebook_path = demo_dir / "visual_action_notebook.json"
+        sphere_notebook_path = demo_dir / "sphere_visual_notebook.json"
+        manifest_path = demo_dir / "visual_demo_manifest.json"
+        summary_policy = GPTPolicy(
+            timeout_s=args.api_timeout, agent=args.agent)
+        if args.resume and manifest_path.exists():
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            expected_identity = {
+                "agent": summary_policy.agent,
+                "api_protocol": summary_policy.api_protocol,
+                "model": summary_policy.model,
+                "repetitions_per_action": args.visual_demo_repetitions,
+            }
+            mismatches = {
+                key: (manifest.get(key), expected)
+                for key, expected in expected_identity.items()
+                if manifest.get(key) != expected
+            }
+            if mismatches:
+                raise RuntimeError(
+                    f"visual demo identity mismatch: {mismatches}; use the "
+                    "matching configuration or a new --export-dir")
+        elif args.resume and action_notebook_path.exists() and \
+                args.agent != "kimi-k3":
+            raise RuntimeError(
+                "legacy visual demos have no agent identity and may only "
+                "be reused with --agent kimi-k3")
+
+        if (args.resume and args.object_shape == "sphere" and
+                sphere_notebook_path.exists()):
+            stored_sphere = json.loads(
+                sphere_notebook_path.read_text(encoding="utf-8"))
+            sphere_visual_notebook = stored_sphere["agent_summary"]
+            print(f"reusing completed sphere atlas summary from {demo_dir}")
+        elif args.object_shape == "sphere":
+            atlas_env = build_env(
+                args.seed, need_video=True, object_scale=args.object_scale,
+                object_shape=args.object_shape,
+                object_friction=args.object_friction)
+            try:
+                sphere_visual_notebook = run_sphere_visual_atlas(
+                    atlas_env, summary_policy, args.seed, demo_dir,
+                    api_retries=args.api_retries)
+            finally:
+                atlas_env.close()
+
+        expected_action_count = len(primitive_menu(args.object_shape))
+        stored = {}
+        if args.resume and action_notebook_path.exists():
+            stored = json.loads(
+                action_notebook_path.read_text(encoding="utf-8"))
+        completed_aliases = {
+            alias for alias, record in stored.items()
+            if isinstance(record, dict) and
+            isinstance(record.get("agent_summary"), dict)
+        }
+        if len(completed_aliases) == expected_action_count:
+            visual_action_notebook = {
+                alias: record["agent_summary"]
+                for alias, record in stored.items()}
+            print(f"reusing all {expected_action_count} completed visual "
+                  f"action demos from {demo_dir}")
+        else:
+            if completed_aliases:
+                print(f"resuming visual demos: {len(completed_aliases)}/"
+                      f"{expected_action_count} summaries already complete")
+            # Keep calibration and formal-surface renderers separate.
+            demo_env = build_env(
+                args.seed, need_video=True, object_scale=args.object_scale,
+                object_shape=args.object_shape,
+                object_friction=args.object_friction)
+            try:
+                visual_action_notebook = run_visual_action_demos(
+                    demo_env, summary_policy, args.object_shape, args.seed,
+                    args.visual_demo_repetitions, demo_dir,
+                    api_retries=args.api_retries, resume=args.resume)
+            finally:
+                demo_env.close()
     initial_pos, initial_quat, target_goal = reference_state(
         args.seed, args.object_scale, args.object_shape,
         args.object_friction)
@@ -381,14 +591,16 @@ def main() -> int:
             results.append(run_panel(
                 panel, offset, label, args,
                 initial_pos, initial_quat, target_goal,
-                semaphore, render_lock, output_dir))
+                semaphore, render_lock, output_dir,
+                visual_action_notebook, sphere_visual_notebook))
     else:
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = [
                 executor.submit(
                     run_panel, panel, offset, label, args,
                     initial_pos, initial_quat, target_goal,
-                    semaphore, render_lock, output_dir)
+                    semaphore, render_lock, output_dir,
+                    visual_action_notebook, sphere_visual_notebook)
                 for panel, offset, label in presets
             ]
             for future in as_completed(futures):
@@ -399,10 +611,28 @@ def main() -> int:
     summary_path = output_dir / "summary.json"
     summary_path.write_text(json.dumps({
         "seed": args.seed,
+        "agent": args.agent if args.policy == "gpt" else "baseline",
+        "api_protocol": (
+            "chat_completions" if args.agent == "kimi-k3" else "responses"
+        ) if args.policy == "gpt" else None,
         "execution_mode": args.execution_mode,
         "object_shape": args.object_shape,
         "observation_mode": args.observation_mode,
         "agent_receives_simulator_truth": args.observation_mode == "state",
+        "visual_demo_repetitions_per_action": args.visual_demo_repetitions,
+        "visual_demo_dir": (
+            str(output_dir / "visual_demos")
+            if args.visual_demo_repetitions else None),
+        "visual_demo_surface": (
+            "black_white_asymmetric_calibration"
+            if (visual_action_notebook is not None and
+                args.object_shape == "sphere") else None),
+        "sphere_visual_notebook_enabled": (
+            sphere_visual_notebook is not None),
+        "sphere_visual_notebook": (
+            str(output_dir / "visual_demos" /
+                "sphere_visual_notebook.json")
+            if sphere_visual_notebook is not None else None),
         "object_friction": args.object_friction,
         "preset_table": ("sphere_xyz_v1" if args.object_shape == "sphere"
                          else "block_xyz_v1"),
